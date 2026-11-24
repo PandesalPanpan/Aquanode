@@ -31,6 +31,7 @@ const event = (type, extra = {}) => { log('event:', type, extra.reason ?? ''); r
 
 // ---- Settings (write defaults if none exist yet) ----
 let settings = DEFAULT_SETTINGS;
+let readingTimer; // declared before the settings listener, which calls scheduleReadings()
 if (!(await get(r('settings'))).exists()) await set(r('settings'), DEFAULT_SETTINGS);
 onValue(r('settings'), (s) => {
   if (!s.exists()) return;
@@ -74,7 +75,6 @@ async function takeReading() {
     alerted[key] = !!out;
   }
 }
-let readingTimer;
 function scheduleReadings() {
   clearInterval(readingTimer);
   readingTimer = setInterval(() => takeReading().catch((e) => log('reading failed', e.message)), (settings.readingIntervalSec || 10) * 1000);
@@ -120,7 +120,11 @@ setInterval(() => {
 
 // ---- Commands from the Dashboard ----
 onChildAdded(query(r('commands'), orderByChild('status'), equalTo('pending')), async (snap) => {
-  const { type } = snap.val();
+  const { type, ts } = snap.val();
+  if (Date.now() - ts > 5 * 60_000) { // stale (sent while device was offline) — never feed/pump hours late
+    log('command expired:', type);
+    return update(snap.ref, { status: 'expired', doneTs: Date.now() });
+  }
   log('command:', type);
   if (type === 'pump_on') await setPump(true, 'manual');
   else if (type === 'pump_off') await setPump(false, 'manual');

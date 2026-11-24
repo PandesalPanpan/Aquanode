@@ -48,7 +48,7 @@ aquanode/<deviceId>/
     feed:  { enabled: true, times: ["08:00","18:00"], sweepDeg: 90, skipIfTurbid: true },
     safe:  { ph: {min: 6.8, max: 7.6}, tempC: {min: 22, max: 28}, turbidityNTU: {max: 50} }
   }
-  commands/<pushId>  { type: "pump_on" | "pump_off" | "feed_now", ts, status: "pending" | "done" }
+  commands/<pushId>  { type: "pump_on" | "pump_off" | "feed_now", ts, status: "pending" | "done" | "expired" }   # expired = older than 5 min when device saw it
   alerts/<pushId>    { metric, value, min, max, ts }
   events/<pushId>    { type: "fed" | "feed_skipped" | "pump_on" | "pump_off" | "boot", reason?, ts }
 ```

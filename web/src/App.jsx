@@ -135,7 +135,7 @@ function Controls({ status, online, now }) {
   return (
     <div className="card">
       <h2>Controls</h2>
-      {!online && <p className="bad small">Device offline: commands will run when it reconnects.</p>}
+      {!online && <p className="bad small">Device offline: commands expire if it does not reconnect within 5 min.</p>}
       <div className="row">
         <span>Pump</span>
         <span className={`pill ${status?.pumpOn ? 'ok' : ''}`}>{status?.pumpOn ? 'Running' : 'Off'}</span>
