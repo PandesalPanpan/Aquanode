@@ -11,7 +11,7 @@ import {
 } from 'firebase/database';
 
 const config = JSON.parse(readFileSync(new URL('../web/firebase-config.json', import.meta.url)));
-const { DEVICE_ID, DEFAULT_SETTINGS, METRICS, outOfRange } = await import('../web/src/data/defaults.js');
+const { DEVICE_ID, DEFAULT_SETTINGS, METRICS, outOfRange, mergeSettings } = await import('../web/src/data/defaults.js');
 
 const { AQUANODE_EMAIL: email, AQUANODE_PASSWORD: password } = process.env;
 if (!email || !password) {
@@ -35,7 +35,7 @@ let readingTimer; // declared before the settings listener, which calls schedule
 if (!(await get(r('settings'))).exists()) await set(r('settings'), DEFAULT_SETTINGS);
 onValue(r('settings'), (s) => {
   if (!s.exists()) return;
-  settings = { ...DEFAULT_SETTINGS, ...s.val() };
+  settings = mergeSettings(s.val());
   log('settings applied', JSON.stringify(settings));
   scheduleReadings();
 });

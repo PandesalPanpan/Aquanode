@@ -3,22 +3,22 @@ import { outOfRange } from '../data/defaults.js';
 
 export const READINGS = [
   {
-    key: 'ph', name: 'Acidity', unit: 'pH', digits: 1,
+    key: 'ph', name: 'Acidity', card: 'Water acidity', unit: 'pH', digits: 1,
     hint: 'Fish and plants share this water. Most do best between 6.8 and 7.6.',
-    low: 'The water is too acidic for the fish.',
-    high: 'The water is too alkaline for the plants.',
+    low: 'The water is too acidic', lowTip: 'Acidic water stresses fish. Do a partial water change if it stays low.',
+    high: 'The water is too alkaline', highTip: 'Plants struggle to take up nutrients. Do a partial water change if it stays high.',
   },
   {
-    key: 'tempC', name: 'Temperature', unit: '°C', digits: 1,
+    key: 'tempC', name: 'Temperature', card: 'Water temperature', unit: '°C', digits: 1,
     hint: 'Warm-water fish like tilapia and guppies prefer 22 to 28 °C.',
-    low: 'The water is too cold for the fish.',
-    high: 'The water is too warm for the fish.',
+    low: 'The water is too cold', lowTip: 'Cold water slows the fish down. Move the tank somewhere warmer or add a small heater.',
+    high: 'The water is too warm', highTip: 'Warm water holds less oxygen. Keep the tank out of direct sun.',
   },
   {
-    key: 'turbidityNTU', name: 'Clarity', unit: 'NTU', digits: 0,
+    key: 'turbidityNTU', name: 'Clarity', card: 'Water clarity', unit: 'NTU', digits: 0,
     hint: 'Cloudy water usually means leftover food or a dirty filter.',
-    low: '',
-    high: 'The water is getting cloudy. Feed less or clean the filter.',
+    low: '', lowTip: '',
+    high: 'The water is getting cloudy', highTip: 'Cloudy water usually means leftover food. Feed less or clean the filter.',
   },
 ];
 
@@ -34,15 +34,15 @@ export function issuesOf(latest, safe) {
   if (!latest) return [];
   return READINGS.flatMap((r) => {
     const out = outOfRange(r.key, latest[r.key], safe);
-    return out ? [{ key: r.key, name: r.name, dir: out, message: r[out] }] : [];
+    return out ? [{ key: r.key, name: r.name, dir: out, message: r[out], tip: r[out + 'Tip'] }] : [];
   });
 }
 
 export function headline({ online, latest, issues, lastSeen, now }) {
   if (!latest && !lastSeen) return { tone: 'idle', title: 'Waiting for AquaNode', sub: 'Plug in the device. Readings appear here as soon as it connects.' };
   if (!online) return { tone: 'off', title: 'AquaNode is not responding', sub: `Last heard from ${since(lastSeen, now)}. Check its power and Wi-Fi.` };
-  if (issues.length === 1) return { tone: 'warn', title: issues[0].message, sub: `Everything else looks fine. Checked ${since(latest?.ts, now)}.` };
-  if (issues.length > 1) return { tone: 'warn', title: `${issues.length} things need your attention`, sub: issues.map((i) => i.message).join(' ') };
+  if (issues.length === 1) return { tone: 'warn', title: issues[0].message, sub: `${issues[0].tip} Everything else looks fine.` };
+  if (issues.length > 1) return { tone: 'warn', title: `${issues.length} things need your attention`, sub: issues.map((i) => i.message).join(', ') + '. Details are below.' };
   return { tone: 'good', title: 'Your fish and plants are doing well', sub: `All readings are in the healthy range. Checked ${since(latest?.ts, now)}.` };
 }
 

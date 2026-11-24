@@ -18,6 +18,17 @@ export const METRICS = [
   { key: 'turbidityNTU', label: 'Turbidity', unit: 'NTU', digits: 0 },
 ];
 
+// Deep-merge stored settings over defaults, so a partial or old settings object never breaks the UI or device.
+export function mergeSettings(stored, defaults = DEFAULT_SETTINGS) {
+  if (stored == null || typeof stored !== 'object' || Array.isArray(stored)) return stored ?? defaults;
+  const out = Array.isArray(defaults) ? [...defaults] : { ...defaults };
+  for (const [k, v] of Object.entries(stored)) {
+    const d = defaults?.[k];
+    out[k] = d && typeof d === 'object' && !Array.isArray(d) && v && typeof v === 'object' && !Array.isArray(v) ? mergeSettings(v, d) : v;
+  }
+  return out;
+}
+
 // Returns null if in range, else 'low' | 'high'.
 export function outOfRange(metric, value, safe) {
   const r = safe?.[metric];

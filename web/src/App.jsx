@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as T from './data/transport.js';
-import { DEFAULT_SETTINGS } from './data/defaults.js';
+import { mergeSettings } from './data/defaults.js';
 import { useSub, useNow, useNewEvents } from './ui/hooks.js';
 import { headline, issuesOf, since, authError } from './ui/words.js';
 import TankScene from './ui/TankScene.jsx';
@@ -55,7 +55,7 @@ function Dashboard({ user }) {
   const settingsRaw = useSub(T.subscribeSettings);
   const readings = useSub((cb) => T.subscribeReadings(240, cb)) ?? [];
   const events = useSub((cb) => T.subscribeEvents(40, cb));
-  const settings = { ...DEFAULT_SETTINGS, ...(settingsRaw || {}) };
+  const settings = mergeSettings(settingsRaw);
   const feedPulse = useNewEvents(events, ['fed', 'feed_skipped']);
 
   const [toastMsg, setToastMsg] = useState(null);
@@ -94,7 +94,7 @@ function Dashboard({ user }) {
         <Readings latest={latest} safe={settings.safe} />
         <Actions status={status} online={online} feedPulse={feedPulse} toast={toast} />
         <div className="columns">
-          <History readings={readings} safe={settings.safe} />
+          <History readings={readings} safe={settings.safe} intervalSec={settings.readingIntervalSec} />
           <Timeline events={events ?? []} now={now} />
         </div>
         <SettingsSentences settings={settings} toast={toast} />

@@ -30,11 +30,11 @@ function Bubbles({ active }) {
 function Feeder({ pulse }) {
   const skipped = pulse?.type === 'feed_skipped';
   const pellets = useMemo(() => Array.from({ length: 11 }, (_, i) => ({
-    x: (rand(i + 300) - 0.5) * 60,
+    x: (rand(i + 300) - 0.5) * 44,
     delay: rand(i + 350) * 0.5,
     drift: (rand(i + 400) - 0.5) * 50,
     depth: 0.72 + rand(i + 450) * 0.25,
-    s: 5 + rand(i + 500) * 3,
+    s: 9 + rand(i + 500) * 3,
   })), []);
   return (
     <div className={`feeder ${skipped ? 'is-skipped' : pulse ? 'is-feeding' : ''}`} key={pulse?.id ?? 'idle'} aria-hidden="true">
@@ -48,6 +48,7 @@ function Feeder({ pulse }) {
           {pellets.map((p, i) => (
             <span key={i} style={{ '--x': `${p.x}px`, '--delay': `${p.delay}s`, '--drift': `${p.drift}px`, '--depth': p.depth, '--s': `${p.s}px` }} />
           ))}
+          <i className="splash" /><i className="splash two" />
         </div>
       )}
     </div>

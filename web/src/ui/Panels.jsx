@@ -20,21 +20,20 @@ function Reading({ r, value, safe }) {
   const tone = value == null ? 'none' : state ? 'warn' : 'good';
   return (
     <article className={`reading tone-${tone}`}>
-      <h3>{r.name}</h3>
-      <p className="reading-value">
+      <h3>{r.card}</h3>
+      <p className={`reading-value ${isClarity ? 'is-word' : ''}`}>
         {value == null ? '—' : isClarity ? clarityWord(value, range.max) : Number(shown).toFixed(r.digits)}
         {!isClarity && value != null && <span className="reading-unit">{r.unit === 'pH' ? ' pH' : ` ${r.unit}`}</span>}
       </p>
       <p className="reading-state">
-        {value == null ? 'No reading yet' : state ? r[state] : 'Healthy'}
-        {isClarity && value != null && <span className="fine"> ({Math.round(value)} NTU)</span>}
+        {value == null ? 'No reading yet' : state ? 'Needs attention' : 'Healthy'}
       </p>
       <div className="gauge" role="img" aria-label={`${r.name}: healthy range ${bandLo} to ${bandHi}`}>
         <span className="gauge-band" style={{ left: pct(bandLo), width: `calc(${pct(bandHi)} - ${pct(bandLo)})` }} />
         {value != null && <span className="gauge-dot" style={{ left: pct(shown) }} />}
       </div>
       <p className="fine gauge-legend">
-        Healthy: {range.min != null ? `${range.min} to ${range.max}` : `under ${range.max}`} {r.unit}
+        {isClarity && value != null ? `Now ${Math.round(value)} NTU. ` : ''}Healthy: {range.min != null && range.max != null ? `${range.min} to ${range.max}` : range.max != null ? `under ${range.max}` : `above ${range.min}`} {r.unit}
       </p>
     </article>
   );
@@ -90,47 +89,75 @@ export function Actions({ status, online, feedPulse, toast }) {
 }
 
 // ---------- Timeline ----------
+const dur = (ms) => { const s = Math.round(ms / 1000); return s < 90 ? `${s} seconds` : `${Math.round(s / 60)} minutes`; };
+
+// Collapse "pump on" + "pump off" into one line so the list stays readable.
+function mergeEvents(events) {
+  const out = [];
+  let open = null;
+  for (const e of events) {               // oldest -> newest
+    if (e.type === 'pump_on') { open = { ...e, kind: 'pump' }; out.push(open); continue; }
+    if (e.type === 'pump_off' && open) {
+      open.text = `${open.reason === 'manual' ? 'You ran' : 'The water pump ran'} for ${dur(e.ts - open.ts)}`;
+      open = null; continue;
+    }
+    out.push({ ...e, ...describeEvent(e) });
+  }
+  if (open) open.text = open.reason === 'manual' ? 'You started the water pump (running now)' : 'The water pump is running now';
+  return out.map((e) => (e.text ? e : { ...e, ...describeEvent(e) }));
+}
+
 export function Timeline({ events, now }) {
+  const [all, setAll] = useState(false);
+  const merged = useMemo(() => mergeEvents(events).reverse(), [events]);
+  const shown = all ? merged : merged.slice(0, 8);
   const groups = useMemo(() => {
     const out = [];
-    [...events].reverse().forEach((e) => {
+    shown.forEach((e) => {
       const label = dayLabel(e.ts, now);
       if (!out.length || out.at(-1).label !== label) out.push({ label, items: [] });
       out.at(-1).items.push(e);
     });
     return out;
-  }, [events, now]);
+  }, [shown, now]);
   return (
     <section className="panel timeline">
       <h2>What AquaNode has been doing</h2>
-      {!events.length && <p className="empty">Nothing yet. Feed the fish or start the pump and it shows up here.</p>}
+      {!merged.length && <p className="empty">Nothing yet. Feed the fish or start the pump and it shows up here.</p>}
       {groups.map((g) => (
         <div key={g.label}>
           <h3 className="day">{g.label}</h3>
           <ol>
-            {g.items.map((e) => {
-              const d = describeEvent(e);
-              return (
-                <li key={e.id} className={`ev ev-${d.kind}`}>
-                  <time>{timeOfDay(e.ts)}</time>
-                  <span>{d.text}{d.detail && <span className="fine"> ({d.detail.replace(/ at .*$/, '')})</span>}</span>
-                </li>
-              );
-            })}
+            {g.items.map((e) => (
+              <li key={e.id} className={`ev ev-${e.kind}`}>
+                <time>{timeOfDay(e.ts)}</time>
+                <span>{e.text}</span>
+              </li>
+            ))}
           </ol>
         </div>
       ))}
+      {merged.length > 8 && <button type="button" className="more" onClick={() => setAll(!all)}>{all ? 'Show less' : `Show earlier (${merged.length - 8})`}</button>}
     </section>
   );
 }
 
 // ---------- History ----------
 const STROKE = { ph: '#C9A3DA', tempC: '#E8B04A', turbidityNTU: '#6FC3C9' };
-export function History({ readings, safe }) {
+export function History({ readings, safe, intervalSec = 10 }) {
   const [key, setKey] = useState('ph');
   const r = READINGS.find((x) => x.key === key);
   const range = safe?.[key] || {};
-  const data = readings.filter((x) => x[key] != null).map((x) => ({ ts: x.ts, v: x[key] }));
+  const data = [];
+  readings.filter((x) => x[key] != null).forEach((x, i, arr) => {
+    // break the line where the device was off, instead of drawing a fake flat stretch
+    if (i && x.ts - arr[i - 1].ts > intervalSec * 3000 + 5000) data.push({ ts: arr[i - 1].ts + 1, v: null });
+    data.push({ ts: x.ts, v: x[key] });
+  });
+  const vals = data.map((d) => d.v).filter((v) => v != null);
+  const lo0 = Math.min(...vals, range.min ?? Infinity), hi0 = Math.max(...vals, range.max ?? -Infinity);
+  const pad = Math.max((hi0 - lo0) * 0.4, key === 'ph' ? 0.3 : key === 'tempC' ? 1 : 5);
+  const domain = [Math.max(0, +(lo0 - pad).toFixed(1)), +(hi0 + pad).toFixed(1)];
   return (
     <section className="panel history">
       <div className="panel-head">
@@ -142,7 +169,7 @@ export function History({ readings, safe }) {
         </div>
       </div>
       <p className="hint">{r.hint}</p>
-      {data.length < 2 ? <p className="empty">The chart fills in as readings arrive.</p> : (
+      {vals.length < 2 ? <p className="empty">The chart fills in as readings arrive.</p> : (
         <div className="chart">
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
@@ -152,18 +179,18 @@ export function History({ readings, safe }) {
                   <stop offset="100%" stopColor={STROKE[key]} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <ReferenceArea y1={range.min ?? 0} y2={range.max} fill="#7FB069" fillOpacity={0.1} ifOverflow="extendDomain" />
-              <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={timeOfDay} stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} minTickGap={48} />
-              <YAxis stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} width={48} />
+              <ReferenceArea y1={range.min ?? 0} y2={range.max} fill="#7FB069" fillOpacity={0.12} ifOverflow="hidden" />
+              <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={timeOfDay} stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} minTickGap={48} tickMargin={8} />
+              <YAxis stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} domain={domain} width={52} tickMargin={6} allowDecimals tickFormatter={(v) => +v.toFixed(r.digits)} />
               <Tooltip
                 labelFormatter={(ts) => timeOfDay(ts)}
                 formatter={(v) => [`${Number(v).toFixed(r.digits)} ${r.unit}`, r.name]}
                 contentStyle={{ background: '#22302D', border: '1px solid #33453F', borderRadius: 10, color: '#EEF3EA' }}
               />
-              <Area type="monotone" dataKey="v" stroke={STROKE[key]} strokeWidth={2.5} fill={`url(#g-${key})`} isAnimationActive={false} />
+              <Area type="monotone" dataKey="v" stroke={STROKE[key]} strokeWidth={2.5} fill={`url(#g-${key})`} isAnimationActive={false} connectNulls={false} />
             </AreaChart>
           </ResponsiveContainer>
-          <p className="fine">Shaded band: the healthy range.</p>
+          <p className="fine">The green band is the healthy range. Gaps mean AquaNode was off.</p>
         </div>
       )}
     </section>
@@ -203,7 +230,7 @@ export function SettingsSentences({ settings, toast }) {
   return (
     <section className="panel settings">
       <h2>How AquaNode looks after your tank</h2>
-      <p className="hint">Change any underlined value. Nothing changes on the device until you save.</p>
+      <p className="hint">Tap any highlighted value to change it. Nothing changes on the device until you save.</p>
 
       <div className="rule">
         <h3>Water pump</h3>
