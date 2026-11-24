@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "aquanode": {
+      "$deviceId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "readings": { ".indexOn": ["ts"] },
+        "alerts":   { ".indexOn": ["ts"] },
+        "events":   { ".indexOn": ["ts"] },
+        "commands": { ".indexOn": ["status"] }
+      }
+    }
+  }
+}
