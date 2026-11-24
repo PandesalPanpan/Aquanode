@@ -1,0 +1,11 @@
+{
+  "name": "aquanode-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fake": "node fake-device.mjs"
+  },
+  "dependencies": {
+    "firebase": "^13.4.0"
+  }
+}
