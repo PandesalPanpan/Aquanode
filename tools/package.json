@@ -6,6 +6,7 @@
     "fake": "node fake-device.mjs"
   },
   "dependencies": {
-    "firebase": "^13.4.0"
+    "firebase": "^13.4.0",
+    "sharp": "^0.35.5"
   }
 }

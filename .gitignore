@@ -6,3 +6,5 @@ firmware/include/secrets.h
 .firebase/
 *.log
 *.mp4
+.playwright-mcp/
+tools/fake.log
