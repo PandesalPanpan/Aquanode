@@ -33,7 +33,7 @@ function Reading({ r, value, safe }) {
         {value != null && <span className="gauge-dot" style={{ left: pct(shown) }} />}
       </div>
       <p className="fine gauge-legend">
-        {isClarity && value != null ? `Now ${Math.round(value)} NTU. ` : ''}Healthy: {range.min != null && range.max != null ? `${range.min} to ${range.max}` : range.max != null ? `under ${range.max}` : `above ${range.min}`} {r.unit}
+        {isClarity && value != null ? `${Math.round(value)} NTU now, limit ${range.max ?? '—'}` : <>Healthy: {range.min != null && range.max != null ? `${range.min} to ${range.max}` : range.max != null ? `under ${range.max}` : `above ${range.min}`} {r.unit}</>}
       </p>
     </article>
   );
@@ -96,15 +96,19 @@ function mergeEvents(events) {
   const out = [];
   let open = null;
   for (const e of events) {               // oldest -> newest
-    if (e.type === 'pump_on') { open = { ...e, kind: 'pump' }; out.push(open); continue; }
-    if (e.type === 'pump_off' && open) {
-      open.text = `${open.reason === 'manual' ? 'You ran' : 'The water pump ran'} for ${dur(e.ts - open.ts)}`;
+    if (e.type === 'pump_on') {
+      if (open) continue;                 // already running: ignore repeated "start"
+      open = { ...e, kind: 'pump' }; out.push(open); continue;
+    }
+    if (e.type === 'pump_off') {
+      if (!open) continue;                // stop without a known start: nothing useful to show
+      open.text = `${open.reason === 'manual' ? 'You ran the water pump' : 'The water pump ran'} for ${dur(e.ts - open.ts)}`;
       open = null; continue;
     }
     out.push({ ...e, ...describeEvent(e) });
   }
-  if (open) open.text = open.reason === 'manual' ? 'You started the water pump (running now)' : 'The water pump is running now';
-  return out.map((e) => (e.text ? e : { ...e, ...describeEvent(e) }));
+  if (open) open.text = open.reason === 'manual' ? 'You started the water pump. It is running now' : 'The water pump is running now';
+  return out;
 }
 
 export function Timeline({ events, now }) {
@@ -149,7 +153,8 @@ export function History({ readings, safe, intervalSec = 10 }) {
   const r = READINGS.find((x) => x.key === key);
   const range = safe?.[key] || {};
   const data = [];
-  readings.filter((x) => x[key] != null).forEach((x, i, arr) => {
+  const clean = [...new Map(readings.filter((x) => x[key] != null && x.ts).map((x) => [x.ts, x])).values()].sort((a, b) => a.ts - b.ts);
+  clean.forEach((x, i, arr) => {
     // break the line where the device was off, instead of drawing a fake flat stretch
     if (i && x.ts - arr[i - 1].ts > intervalSec * 3000 + 5000) data.push({ ts: arr[i - 1].ts + 1, v: null });
     data.push({ ts: x.ts, v: x[key] });
@@ -158,21 +163,28 @@ export function History({ readings, safe, intervalSec = 10 }) {
   const lo0 = Math.min(...vals, range.min ?? Infinity), hi0 = Math.max(...vals, range.max ?? -Infinity);
   const pad = Math.max((hi0 - lo0) * 0.4, key === 'ph' ? 0.3 : key === 'tempC' ? 1 : 5);
   const domain = [Math.max(0, +(lo0 - pad).toFixed(1)), +(hi0 + pad).toFixed(1)];
+  const ticks = [...new Set([domain[0], range.min, range.min != null && range.max != null ? +((range.min + range.max) / 2).toFixed(r.digits) : null, range.max, domain[1]].filter((v) => v != null && v >= domain[0] && v <= domain[1]))].sort((a, b) => a - b);
   return (
     <section className="panel history">
       <div className="panel-head">
         <h2>Water over time</h2>
-        <div className="tabs" role="tablist" aria-label="Choose a reading">
+        <div className="tabs" role="tablist" aria-label="Choose a reading" onKeyDown={(e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          const i = READINGS.findIndex((x) => x.key === key);
+          const n = READINGS[(i + (e.key === 'ArrowRight' ? 1 : READINGS.length - 1)) % READINGS.length];
+          setKey(n.key);
+          e.currentTarget.querySelector(`[data-k="${n.key}"]`)?.focus();
+        }}>
           {READINGS.map((x) => (
-            <button key={x.key} role="tab" aria-selected={key === x.key} className={key === x.key ? 'is-on' : ''} onClick={() => setKey(x.key)}>{x.name}</button>
+            <button key={x.key} data-k={x.key} tabIndex={key === x.key ? 0 : -1} role="tab" aria-selected={key === x.key} className={key === x.key ? 'is-on' : ''} onClick={() => setKey(x.key)}>{x.name}</button>
           ))}
         </div>
       </div>
       <p className="hint">{r.hint}</p>
       {vals.length < 2 ? <p className="empty">The chart fills in as readings arrive.</p> : (
-        <div className="chart">
+        <div className="chart" role="img" aria-label={`${r.name} over time. The green band is the healthy range.`}>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+            <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }} accessibilityLayer={false}>
               <defs>
                 <linearGradient id={`g-${key}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={STROKE[key]} stopOpacity={0.35} />
@@ -181,7 +193,7 @@ export function History({ readings, safe, intervalSec = 10 }) {
               </defs>
               <ReferenceArea y1={range.min ?? 0} y2={range.max} fill="#7FB069" fillOpacity={0.12} ifOverflow="hidden" />
               <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} tickFormatter={timeOfDay} stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} minTickGap={48} tickMargin={8} />
-              <YAxis stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} domain={domain} width={52} tickMargin={6} allowDecimals tickFormatter={(v) => +v.toFixed(r.digits)} />
+              <YAxis stroke="#8DA39A" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} domain={domain} ticks={ticks} width={52} tickMargin={6} allowDecimals tickFormatter={(v) => +v.toFixed(r.digits)} />
               <Tooltip
                 labelFormatter={(ts) => timeOfDay(ts)}
                 formatter={(v) => [`${Number(v).toFixed(r.digits)} ${r.unit}`, r.name]}

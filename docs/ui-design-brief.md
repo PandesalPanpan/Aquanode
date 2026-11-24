@@ -1,6 +1,6 @@
 # Dashboard UI Redesign — Brief
 
-Status: **planned for after Thursday's Bench Prototype** (current simple UI is enough for testing). Only `web/src/App.jsx`, `web/src/styles.css`, and assets change — `web/src/data/transport.js` stays untouched.
+Status: **built 2026-11-24** (live tank scene, plain-language copy, sentence settings; two independent UI/UX review passes applied). Remaining: swap the placeholder photo for our own tank (`node tools/optimize-bg.mjs <photo>`, then re-tune `--wl-n`, `--pump-x`, `--feeder-x` in styles.css). Only `web/src/App.jsx`, `web/src/styles.css`, and assets change — `web/src/data/transport.js` stays untouched.
 
 ## Principles
 1. **Layman first.** Anyone (a teacher, a parent, a judge) understands the screen in 2 seconds with no technical knowledge.
