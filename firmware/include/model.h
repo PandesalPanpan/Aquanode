@@ -3,7 +3,7 @@
 #include <sys/time.h>
 
 struct Reading {
-  float ph = NAN, tempC = NAN, turbidityNTU = NAN, turbidityV = NAN;
+  float ph = NAN, tempC = NAN, turbidityNTU = NAN, turbidityV = NAN, phV = NAN;
   uint64_t ts = 0;
 };
 

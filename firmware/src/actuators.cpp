@@ -5,6 +5,26 @@
 
 static bool pumpOn = false;
 static Servo servo;
+#if FEEDER_CONTINUOUS
+static int stopUs = SERVO_STOP_US;
+#endif
+
+void feederSetStopUs(int us) {
+#if FEEDER_CONTINUOUS
+  stopUs = constrain(us, 1000, 2000);
+  Serial.printf("[feeder] stop pulse = %d us (copy into SERVO_STOP_US when it holds still)\n", stopUs);
+#else
+  Serial.println("[feeder] stop trim only applies when FEEDER_CONTINUOUS is 1");
+#endif
+}
+
+void feederHoldStop(uint32_t ms) {
+#if FEEDER_CONTINUOUS && ENABLE_FEEDER
+  servo.attach(PIN_SERVO, 500, 2400);
+  servo.writeMicroseconds(stopUs); delay(ms);
+  servo.detach();
+#endif
+}
 
 void actuatorsBegin() {
 #if ENABLE_PUMP
@@ -32,9 +52,9 @@ void feederRun(uint8_t portion) {
   Serial.printf("[feeder] portion %d: spin %u ms\n", i + 1, spinMs[i]);
 #if ENABLE_FEEDER
   servo.attach(PIN_SERVO, 500, 2400);
-  servo.writeMicroseconds(SERVO_STOP_US); delay(100);
+  servo.writeMicroseconds(stopUs); delay(100);
   servo.writeMicroseconds(SERVO_SPIN_US); delay(spinMs[i]);
-  servo.writeMicroseconds(SERVO_STOP_US); delay(200);
+  servo.writeMicroseconds(stopUs); delay(200);
   servo.detach();
 #endif
 #else

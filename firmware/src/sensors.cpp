@@ -32,7 +32,8 @@ Reading sensorsRead() {
   r.tempC = (t == DEVICE_DISCONNECTED_C) ? NAN : t;
 #endif
 #if ENABLE_PH
-  r.ph = PH_SLOPE * readModuleVolts(PIN_PH) + PH_OFFSET;
+  r.phV = readModuleVolts(PIN_PH);
+  r.ph = PH_SLOPE * r.phV + PH_OFFSET;
 #endif
 #if ENABLE_TURBIDITY
   float v = readModuleVolts(PIN_TURBIDITY) + TURB_V_OFFSET;

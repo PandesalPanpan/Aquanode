@@ -75,6 +75,49 @@ static void checkAlerts(const Reading& r) {
   }
 }
 
+// ---- Bench test console: type commands in the Serial Monitor (115200, newline). Works without WiFi. ----
+static void printReading(const Reading& r) {
+  Serial.printf("[reading] pH %.2f (%.3f V) | temp %.2f C | turbidity %.0f NTU (%.3f V) | pump %s\n",
+                r.ph, r.phV, r.tempC, r.turbidityNTU, r.turbidityV, status.pumpOn ? "ON" : "off");
+}
+
+static void consoleHelp() {
+  Serial.println("[console] commands: read | pump on | pump off | feed 1|2|3 | stop <us> (e.g. stop 1480) | help");
+}
+
+static void handleConsole(String line) {
+  line.trim();
+  line.toLowerCase();
+  if (!line.length()) return;
+  if (line == "read") { last = sensorsRead(); printReading(last); }
+  else if (line == "pump on") setPump(true, "console");
+  else if (line == "pump off") setPump(false, "console");
+  else if (line.startsWith("feed")) {
+    int p = line.substring(4).toInt();
+    if (p < 1 || p > 3) { Serial.println("[console] use: feed 1, feed 2 or feed 3"); return; }
+    uint8_t saved = S.portion; S.portion = p;
+    feed("console");
+    S.portion = saved;
+  }
+  else if (line.startsWith("stop")) {
+    int us = line.substring(4).toInt();
+    if (us < 1000 || us > 2000) { Serial.println("[console] use: stop <1000-2000>, e.g. stop 1480"); return; }
+    feederSetStopUs(us);
+    Serial.println("[console] holding stop pulse for 3 s - watch the servo: still = good value");
+    feederHoldStop(3000);
+  }
+  else { Serial.printf("[console] unknown: '%s'\n", line.c_str()); consoleHelp(); }
+}
+
+static void consoleLoop() {
+  static String buf;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n' || c == '\r') { handleConsole(buf); buf = ""; }
+    else if (buf.length() < 40) buf += c;
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(300);
@@ -84,10 +127,12 @@ void setup() {
   actuatorsBegin();
   transportBegin(onSettings, onCommand);
   phaseEndMs = millis();  // start pump cycle immediately
+  consoleHelp();
 }
 
 void loop() {
   transportLoop();
+  consoleLoop();
 
   // Readings
   if (millis() - lastReadingMs >= S.readingIntervalSec * 1000UL || lastReadingMs == 0) {
@@ -101,8 +146,7 @@ void loop() {
 #else
     last = sensorsRead();
 #endif
-    Serial.printf("[reading] pH %.2f | temp %.2f C | turbidity %.0f NTU (%.3f V) | pump %s\n",
-                  last.ph, last.tempC, last.turbidityNTU, last.turbidityV, status.pumpOn ? "ON" : "off");
+    printReading(last);
     checkAlerts(last);
     sendReading(last);
     sendStatus(status);

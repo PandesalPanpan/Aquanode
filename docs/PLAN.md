@@ -103,6 +103,11 @@ General rule: **one component at a time, test sketch first, then add to the main
 
 T12 is the strongest tutorial moment, so film it carefully.
 
+### Bench test console (no WiFi needed)
+Open the Serial Monitor (`pio device monitor`, 115200) and type:
+`read` (all sensors + raw pH/turbidity volts) · `pump on` / `pump off` · `feed 1|2|3` · `stop <us>` (try a servo stop pulse for 3 s; when it holds still, copy the value into `SERVO_STOP_US`) · `help`.
+Use the raw pH volts in buffer solutions for the T14 calibration.
+
 ### Default wiring (adjust at T0)
 
 | Part | Power | Signal → ESP32 | Notes |
