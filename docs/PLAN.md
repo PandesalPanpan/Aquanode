@@ -99,7 +99,7 @@ General rule: **upload the full firmware once, then wire one component at a time
 | T11 | Settings sync | Change pump timing/feed time/Safe Range in Dashboard | ESP32 applies it (Serial confirms) |
 | T12 | **Balancer demo** ⭐ | Make water cloudy right before a scheduled feed | feed skipped, `feed_skipped` event + turbidity Alert on Dashboard |
 | T13 | Resilience | Unplug router for 1 min | local schedule keeps running; data resumes after reconnect |
-| T14 | Stretch: calibration | pH 2-point with buffers (6.86/4.01), turbidity clear-water baseline, servo portion size | values saved in `config.h` |
+| T14 | Stretch: calibration | Turbidity clear-water baseline, servo portion size (pH buffers skipped; pH stays uncalibrated) | values saved in `config.h` |
 
 T12 is the strongest tutorial moment, so film it carefully.
 

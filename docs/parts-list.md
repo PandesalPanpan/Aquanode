@@ -1,7 +1,8 @@
 # Bench Prototype — Parts List
 
 Everything needed on the table to build the Bench Prototype with our exact modules.
-✅ = we already have it · 🛒 = get before build day · ⭐ = optional/stretch.
+✅ = we already have it · 🛒 = get before build day · ⭐ = optional/stretch · 🚚 = arriving.
+Small parts (sections 2–4) are being bought by Carl.
 
 ## 1. Main parts (already bought)
 
@@ -9,12 +10,12 @@ Everything needed on the table to build the Bench Prototype with our exact modul
 |---|---|---|
 | ✅ | ESP32 DevKit (WROOM-32) | Powered from the laptop USB during the bench test |
 | ✅ | DS18B20 waterproof probe + module | Power the module from **3.3V**, not 5V (its pull-up would put 5V on the ESP32 pin). The module already has the 4.7kΩ pull-up resistor |
-| ✅ | SGD90-360 servo (continuous rotation) | Runs from the **external 5V**, not the ESP32 |
+| 🚚 | SGD90-360 servo (continuous rotation) | Delivery expected on build day; T7 waits for it. Runs from the **external 5V**, not the ESP32 |
 | ✅ | 5V waterproof mini pump + tubes | Switched by the relay; must always be **under water** when running |
 | ✅ | DIYMore pH probe + module (PH-4502C type) | 5V; use the **PO** pin; output goes through a divider |
 | ✅ | Turbidity probe + module (B0G4MDZW62) | 5V; analog output goes through a divider; if the board has an A/D switch, set it to **A** |
-| ✅ | 3.3V–5V relay module | VCC = 5V, IN = GPIO26 |
-| ✅ | Buck converter | **Not used** in the Bench Prototype; the power bank already gives 5V. Kept for Final Assembly |
+| ✅ | 3.3V–5V relay module (Carl brings) | VCC = 5V, IN = GPIO26 |
+| ✅ | Buck converter (Carl has it) | **Not used** in the Bench Prototype; the power bank already gives 5V. Kept for Final Assembly |
 
 ## 2. Power
 
@@ -47,14 +48,14 @@ Divider wiring, one per sensor: **module out → 10kΩ → ESP32 pin → 20kΩ �
 | 🛒 | Electrical tape or heat-shrink (cover exposed joints near water) | 1 |
 | ⭐ | Alligator clip leads | a few |
 
-## 5. Feeder mechanism (the servo needs something to turn)
+## 5. Feeder mechanism (3D printed)
 
 | ✓ | Item | Why |
 |---|---|---|
-| 🛒 | Small container (pill bottle / film canister / bottle cap) with a hole cut in its side or bottom | Food hopper |
-| 🛒 | Disc or paddle on the servo horn (plastic lid / cardboard + the servo's own horn) | Turns under the hole to let food fall out |
-| 🛒 | Hot glue or double-sided tape, cable ties | Mounting the servo and hopper |
+| 🛒 | 3D-printed feeder (hopper + rotating part on the servo horn) | Not needed for the T7 spin test; the servo can be tested bare |
 | 🛒 | Fish food (flakes or small pellets) | Testing the Feed Portion sizes |
+
+Note for whoever designs the print: the servo **spins continuously** and a portion is a spin **time**, so a rotating disc with a hole, a paddle wheel or an auger works. A flap that swings to an angle and back does not. Body is SG90 size (about 23 × 12.5 × 22 mm, mounting tabs 32 mm across); check the horn that comes with the servo before printing.
 
 ## 6. Water tests and calibration
 
@@ -64,9 +65,10 @@ Divider wiring, one per sensor: **module out → 10kΩ → ESP32 pin → 20kΩ �
 | 🛒 | Vinegar, baking soda | Moves pH down / up for the demo |
 | 🛒 | Milk or a little soil | Makes water cloudy (Skip-Feed Rule demo, T12) |
 | 🛒 | Warm and cold water | Shows the temperature changing |
-| ⭐ | pH buffer powder packets **4.00 / 6.86** (often sold with pH pens) | 2-point pH calibration (T14) |
-| ⭐ | Distilled water | Rinsing the pH probe between buffers |
-| ✅ | pH probe storage cap (keep it wet; KCl solution if it dried out) | Dry probe = wrong readings |
+| — | ~~pH buffer powder~~ | Skipped: team decision. pH will be uncalibrated (good for showing up/down changes, not exact values). See note below |
+| ✅ | pH probe storage cap (keep it wet) | A dried-out probe gives wrong readings |
+
+**About pH buffers:** "non-refillable" describes the probe (sealed gel inside, nothing to top up). Buffer solutions are for **calibration**, which every pH probe needs, refillable or not. Without them the firmware uses typical default values, so readings can be off by roughly ±0.5–1 pH. That's fine for the demo (vinegar goes down, baking soda goes up). Buy a 4.00/6.86 packet later only if exact pH values matter for grading.
 
 ## 7. Safety and recording
 
