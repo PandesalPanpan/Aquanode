@@ -18,7 +18,7 @@ bool settingsFromJson(const String& json, Settings& s) {
   s.pumpOffMin = p["offMin"] | s.pumpOffMin;
   JsonVariantConst f = doc["feed"];
   s.feedEnabled = f["enabled"] | s.feedEnabled;
-  s.sweepDeg = f["sweepDeg"] | s.sweepDeg;
+  s.portion = constrain(f["portion"] | (int)s.portion, 1, 3);
   s.skipIfTurbid = f["skipIfTurbid"] | s.skipIfTurbid;
   if (f["times"].is<JsonArrayConst>()) {
     s.feedCount = 0;

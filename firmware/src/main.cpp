@@ -26,7 +26,7 @@ static void setPump(bool on, const char* why) {
 }
 
 static void feed(const String& reason) {
-  feederSweep(S.sweepDeg);
+  feederRun(S.portion);
   status.lastFeedTs = nowMs();
   sendEvent("fed", reason);
   sendStatus(status);
@@ -84,7 +84,6 @@ void setup() {
   actuatorsBegin();
   transportBegin(onSettings, onCommand);
   phaseEndMs = millis();  // start pump cycle immediately
-  sendEvent("boot", FW_VERSION);
 }
 
 void loop() {
@@ -93,7 +92,15 @@ void loop() {
   // Readings
   if (millis() - lastReadingMs >= S.readingIntervalSec * 1000UL || lastReadingMs == 0) {
     lastReadingMs = millis();
+#if AQUANODE_DEMO_READINGS
+    last.ph = 7.2f;
+    last.tempC = 25.5f;
+    last.turbidityNTU = 12.0f;
+    last.turbidityV = 4.18f;
+    last.ts = nowMs();
+#else
     last = sensorsRead();
+#endif
     Serial.printf("[reading] pH %.2f | temp %.2f C | turbidity %.0f NTU (%.3f V) | pump %s\n",
                   last.ph, last.tempC, last.turbidityNTU, last.turbidityV, status.pumpOn ? "ON" : "off");
     checkAlerts(last);

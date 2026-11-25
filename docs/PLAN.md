@@ -1,6 +1,6 @@
 # AquaNode — Bench Prototype Plan (Wed Nov 25 – Thu Nov 26, 2026)
 
-Terms in **bold** are defined in [`CONTEXT.md`](../CONTEXT.md). Transport decision: [`adr/0001`](adr/0001-firebase-rtdb-now-mqtt-swappable.md).
+Terms in **bold** are defined in [`CONTEXT.md`](../CONTEXT.md). See the [MQTT bench setup](mqtt.md) for the current transport and startup steps.
 
 ## Goal
 Reach a working **Bench Prototype** by Thursday night, in this priority order:
@@ -9,16 +9,16 @@ Reach a working **Bench Prototype** by Thursday night, in this priority order:
 |---|---|---|---|
 | 1 | Each sensor/actuator works alone | II.1 | Must |
 | 2 | All run together in one ESP32 sketch (Serial output) | II.3 | Must |
-| 3 | ESP32 pushes **Readings** to Firebase | II.4–5 | Should |
+| 3 | ESP32 publishes **Readings** over MQTT and the bridge writes them to Firebase | II.4–5 | Should |
 | 4 | **Dashboard** shows live data, sends **Commands**, edits **Settings** | II.6–7 | Should |
 | 5 | Calibration (pH buffers, turbidity, servo angles) | II.2 | Stretch |
 
-**Out of scope:** aquarium, grow trays, PCB, enclosure (**Final Assembly**), MQTT, native mobile app.
+**Out of scope:** aquarium, grow trays, PCB, enclosure (**Final Assembly**) and native mobile app.
 
 ## Decisions (locked)
 - **Hardware unknown until Thursday** → all pins/constants in `firmware/include/config.h`; first task Thursday is module identification.
-- **Transport:** Firebase Realtime Database, paths named like MQTT topics (swappable later).
-- **Dashboard:** React + Vite, responsive (phone + laptop), hosted on Firebase Hosting. Firebase Auth (email/password): one login for you two, one for the device.
+- **Transport** uses MQTT from the ESP32 to a broker. A bridge synchronizes messages with Firebase Realtime Database.
+- **Dashboard:** React + Vite, responsive (phone + laptop), hosted on Firebase Hosting. Firebase Auth (email/password): one login for you two, one for the bridge.
 - **Firmware:** PlatformIO (VS Code) so the AI agent can build/upload/read Serial from the terminal.
 - **Autonomy lives on the ESP32:** pump timer, feeding schedule, Safe Range checks, **Skip-Feed Rule** all run on-device using the last **Settings** received; keeps working if WiFi drops.
 - **Time:** ESP32 syncs via NTP, timezone UTC+8.
@@ -27,12 +27,7 @@ Reach a working **Bench Prototype** by Thursday night, in this priority order:
 ## Architecture
 
 ```
- ┌───────────── ESP32 (firmware/) ─────────────┐        ┌── Firebase ──┐       ┌─ Dashboard (web/) ─┐
- │ sensors: pH · turbidity · temp              │        │ Realtime DB  │       │ live tiles + chart │
- │ actuators: pump (relay) · feeder (servo)    │ ─────▶ │ Auth         │ ◀───▶ │ alerts             │
- │ scheduler: pump timer · feed times · rules  │ ◀───── │ Hosting      │       │ controls/settings  │
- │ transport: sendReading/onSettings/onCommand │        └──────────────┘       └────────────────────┘
- └─────────────────────────────────────────────┘
+ ESP32 <-> MQTT broker <-> bridge <-> Firebase Realtime Database <-> Dashboard
 ```
 
 ## Data model (Realtime Database)
@@ -41,16 +36,16 @@ Reach a working **Bench Prototype** by Thursday night, in this priority order:
 aquanode/<deviceId>/
   status      { online, lastSeen, pumpOn, lastFeedTs, fw }
   latest      { ph, turbidityV, turbidityNTU, tempC, ts }
-  readings/<pushId>  { ph, turbidityV, turbidityNTU, tempC, ts }      # every readingIntervalSec
+  readings/<messageId>  { ph, turbidityV, turbidityNTU, tempC, ts }      # every readingIntervalSec
   settings    {
     readingIntervalSec: 10,
     pump:  { enabled: true, onMin: 15, offMin: 45 },
-    feed:  { enabled: true, times: ["08:00","18:00"], sweepDeg: 90, skipIfTurbid: true },
+    feed:  { enabled: true, times: ["08:00","18:00"], portion: 2, skipIfTurbid: true },
     safe:  { ph: {min: 6.8, max: 7.6}, tempC: {min: 22, max: 28}, turbidityNTU: {max: 50} }
   }
-  commands/<pushId>  { type: "pump_on" | "pump_off" | "feed_now", ts, status: "pending" | "done" | "expired" }   # expired = older than 5 min when device saw it
-  alerts/<pushId>    { metric, value, min, max, ts }
-  events/<pushId>    { type: "fed" | "feed_skipped" | "pump_on" | "pump_off" | "boot", reason?, ts }
+  commands/<pushId>  { type: "pump_on" | "pump_off" | "feed_now", ts, status: "pending" | "done" | "expired" | "uncertain" | "failed", doneTs? }
+  alerts/<messageId>    { metric, value, min, max, ts }
+  events/<messageId>    { type: "fed" | "feed_skipped" | "pump_on" | "pump_off" | "boot", reason?, ts }
 ```
 Default Safe Ranges are placeholders; tune for your fish species.
 
@@ -59,9 +54,9 @@ Default Safe Ranges are placeholders; tune for your fish species.
 CONTEXT.md
 docs/  PLAN.md · adr/ · recording-log.md · wiring/ (photos) · datasheets/
 firmware/  platformio.ini · include/config.h · include/secrets.h (gitignored)
-           src/main.cpp · sensors.* · actuators.* · scheduler.* · transport_firebase.*
-web/       React + Vite app; src/data/transport.ts is the only file that talks to Firebase
-tools/     fake-device.mjs (simulates the ESP32 so the Dashboard can be built without hardware)
+           src/main.cpp · sensors.* · actuators.* · settings_store.* · transport_mqtt.*
+web/       React + Vite app; src/data/transport.js is the only file that talks to Firebase
+tools/     mqtt-bridge.mjs · fake-device.mjs · smoke-test.mjs
 database.rules.json · firebase.json
 ```
 
@@ -74,7 +69,7 @@ database.rules.json · firebase.json
 | W0 | `git init`, folders, `.gitignore` (secrets, node_modules, .pio) | first commit | screen: project intro |
 | W1 | Create Firebase project: Realtime DB, Auth (email/password), Hosting; create 2 users (team, device) | console shows DB | 🎥 setup walkthrough |
 | W2 | Write `database.rules.json`: only signed-in users can read/write `aquanode/` | rules deployed | — |
-| W3 | `tools/fake-device.mjs`: pushes fake Readings every 5 s, applies Settings, executes Commands (marks `done`, logs events), raises Alerts | data streams in console | 🎥 "fake ESP32" demo |
+| W3 | `tools/fake-device.mjs` publishes Readings over MQTT, applies Settings, and acknowledges Commands. The bridge syncs with Firebase | data streams in console | 🎥 "fake ESP32" demo |
 | W4 | Dashboard: login → live tiles (pH/temp/turbidity, color by Safe Range) → history chart → alerts list → controls (pump toggle, Feed now) → Settings form → events log | works against fake device | 🎥 UI tour |
 | W5 | Deploy to Firebase Hosting, open on phone | URL works on phone | 🎥 phone demo |
 | W6 | Firmware skeleton: PlatformIO project, `config.h`, module stubs, `pio run` compiles | green build | screen: code structure |
@@ -83,6 +78,8 @@ database.rules.json · firebase.json
 If short on time, W4 order is the priority order; Settings form and events log can slip to Thursday evening.
 
 ## Thursday Nov 26: hardware day at home
+
+Start with the [Thursday MQTT handoff](mqtt.md#thursday-handoff--november-26-2026) for the verified baseline and the board-only MQTT check.
 
 General rule: **one component at a time, test sketch first, then add to the main firmware.** Every row is a **Checkpoint** → clip + Recording Log line. Swap builder/filmer each Checkpoint.
 
@@ -95,9 +92,9 @@ General rule: **one component at a time, test sketch first, then add to the main
 | T4 | pH | Tap water (~7), vinegar (~3), baking-soda water (~8–9) | readings move in the right direction |
 | T5 | Relay | Relay alone first (hear the click, LED toggles) | clicks on command |
 | T6 | Pump | Pump **submerged** in a container, via relay | water flows on/off |
-| T7 | Feeder | Servo sweep 0→90→0 on external 5V | smooth sweep, no ESP32 brownout/reset |
+| T7 | Feeder | "Feed now" on external 5V; confirm servo type (continuous spins then stops → `FEEDER_CONTINUOUS 1`) | spins & stops cleanly, no creep, no ESP32 brownout/reset |
 | T8 | Integration I | All in one sketch; Serial prints a full Reading every 10 s; pump timer + feed schedule run (use short test intervals, e.g. 1 min) | runs 15 min without reset |
-| T9 | Online | WiFi + Firebase transport; Readings appear in DB | Dashboard shows real data |
+| T9 | Online | Wi-Fi + MQTT; Readings reach Firebase through the bridge | Dashboard shows real data |
 | T10 | Remote control | Dashboard: pump toggle + Feed now | physical action within ~3 s |
 | T11 | Settings sync | Change pump timing/feed time/Safe Range in Dashboard | ESP32 applies it (Serial confirms) |
 | T12 | **Balancer demo** ⭐ | Make water cloudy right before a scheduled feed | feed skipped, `feed_skipped` event + turbidity Alert on Dashboard |
@@ -112,22 +109,16 @@ T12 is the strongest tutorial moment, so film it carefully.
 |---|---|---|---|
 | pH module | 5V | analog out → **voltage divider** (10kΩ/20kΩ) → GPIO34 | ADC1 only (ADC2 dies with WiFi) |
 | Turbidity module | 5V | analog out → **voltage divider** → GPIO35 | ADC1 only |
-| DS18B20 | 3.3V | data → GPIO4, 4.7kΩ data↔3.3V | |
+| DS18B20 module | **3.3V** (not 5V) | data → GPIO4 | module has the 4.7kΩ pull-up on board |
 | Relay module | 5V | IN → GPIO26 | check active-LOW vs HIGH |
 | Pump | own supply via relay COM/NO | — | never run dry |
-| Servo | **external 5V** | PWM → GPIO13 | not from ESP32 3.3V pin |
+| Servo (SGD90-360, continuous) | **external 5V** | PWM → GPIO13 | not from ESP32 3.3V pin |
+| Power bank (via USB breakout) | 5V rail for pump, servo, relay, pH, turbidity | — | buck converter not used on the bench; GND common with ESP32 |
 
 **All grounds common.** Measure a module's analog output with a multimeter before connecting it to the ESP32 if unsure of its range.
 
-### Bring/check before Thursday
-- [ ] Breadboard, jumper wires (M-M, M-F), **data-capable** USB cable
-- [ ] Resistors: 2× 10kΩ, 2× 20kΩ (or 2×10kΩ in series), 1× 4.7kΩ
-- [ ] Multimeter
-- [ ] External 5V supply (2A+) for servo/pump (USB phone charger + cut cable / breakout works)
-- [ ] 3 cups/jars: clean water, tap water, cloudy water; vinegar, baking soda, milk
-- [ ] Towel, tray — keep water away from the breadboard
-- [ ] pH buffer solutions (stretch), keep pH probe tip wet in its storage cap
-- [ ] Phone stand/tripod, OBS or Win+Alt+R for screen capture, charged phone
+### Bring/check before build day
+See **[parts-list.md](parts-list.md)**: full list for our exact modules, with what we have vs. still need, plus the bench power layout.
 
 ## Recording protocol
 - Each 🎥/Checkpoint → one clip, 30 s–3 min: **what we're testing → wiring/code → result**.
@@ -140,13 +131,11 @@ T12 is the strongest tutorial moment, so film it carefully.
 | Risk | Fallback |
 |---|---|
 | Servo / power supply not available | Code + Dashboard button exist; film T7 later |
-| Firebase lib won't build/connect | Use plain HTTPS REST (`HTTPClient`) + poll commands every 2 s |
 | Analog readings noisy | Average 20 samples, median filter |
 | ESP32 resets when servo/pump starts | Separate 5V supply, common GND, 470–1000 µF cap on 5V rail |
 | Board not recognized on USB | Install CP210x / CH340 driver; try another (data) cable |
-| MQTT turns out to be required | Swap transport modules per ADR 0001 (~2–3 h) |
 
 ## Open items
 - Confirm servo, power supply, pH buffers availability.
 - Confirm team split (proposed: you = W0–W6 software, teammate = W7 hardware prep; Thursday rotate builder/filmer).
-- Ask instructor whether MQTT is required.
+- Verify the MQTT round trip with the simulator before connecting the ESP32.

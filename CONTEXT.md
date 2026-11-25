@@ -10,7 +10,9 @@
 
 **Alert** — A notice shown on the dashboard when a Reading leaves its Safe Range.
 
-**Settings** — Everything the user can configure from the app: pump on/off durations, feeding times, Safe Ranges, skip-feed rule on/off. The ESP32 keeps the last Settings it received so it keeps working offline.
+**Settings** — Everything the user can configure from the app: pump on/off durations, feeding times, Feed Portion, Safe Ranges, skip-feed rule on/off. The ESP32 keeps the last Settings it received so it keeps working offline.
+
+**Feed Portion** — How much food one feeding drops: small, medium, or large. The ESP32 turns the size into a servo spin time (continuous-rotation servo) or sweep angle (standard servo); the exact amounts are tuned on the bench.
 
 **Command** — A one-off manual action sent from the app: pump on/off, feed now.
 
@@ -20,7 +22,7 @@
 
 **Final Assembly** — Moving the working Bench Prototype into the aquarium with grow trays, enclosure, and PCB. Comes after the Bench Prototype; out of scope for now.
 
-**Transport** — The single layer (one firmware module, one frontend module) that moves Readings, Settings, Commands, and Alerts between ESP32 and Dashboard. Currently Firebase Realtime Database; designed to be swapped for MQTT (see docs/adr/0001).
+**Transport** — The single layer (one firmware module, one frontend module) that moves Readings, Settings, Commands, and Alerts between ESP32 and Dashboard. The Dashboard uses Firebase Realtime Database. The ESP32 uses MQTT, and the bridge relays messages between MQTT and Realtime Database.
 
 **Checkpoint** — A moment in the plan where something works for the first time (marked 🎥). Each Checkpoint gets one short clip (what we test → wiring/code → result) and an entry in the Recording Log. Failures and fixes are recorded too.
 

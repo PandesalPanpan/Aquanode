@@ -3,10 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "fake": "node fake-device.mjs"
+    "fake": "node fake-device.mjs",
+    "bridge": "node mqtt-bridge.mjs",
+    "smoke": "node smoke-test.mjs",
+    "smoke:mqtt": "node mqtt-smoke.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",
+    "mqtt": "^5.16.1",
     "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "aedes": "^1.2.0"
   }
 }

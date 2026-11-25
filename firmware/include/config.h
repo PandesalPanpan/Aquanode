@@ -3,17 +3,19 @@
 #include "secrets.h"
 
 #define DEVICE_ID   "bench-01"
-#define FW_VERSION  "0.1.0"
-#define FIREBASE_DB_URL  "https://aquanode-bench-2611-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define FIREBASE_API_KEY "AIzaSyCBPUpfYt8UusSKb3CVaNexKThTOvCASiU"
+#define FW_VERSION  "0.2.0-mqtt"
 #define TZ_INFO "PHT-8"            // POSIX TZ string for UTC+8 (Philippines)
 
+#ifndef AQUANODE_DEMO_READINGS
+#define AQUANODE_DEMO_READINGS 0
+#endif
+
 // ---- Feature flags: turn components on one at a time (T2..T9). Disabled sensors report null. ----
-#define ENABLE_TEMP       1
-#define ENABLE_TURBIDITY  1
-#define ENABLE_PH         1
-#define ENABLE_PUMP       1
-#define ENABLE_FEEDER     1
+#define ENABLE_TEMP       (!AQUANODE_DEMO_READINGS)
+#define ENABLE_TURBIDITY  (!AQUANODE_DEMO_READINGS)
+#define ENABLE_PH         (!AQUANODE_DEMO_READINGS)
+#define ENABLE_PUMP       (!AQUANODE_DEMO_READINGS)
+#define ENABLE_FEEDER     (!AQUANODE_DEMO_READINGS)
 #define ENABLE_CLOUD      1        // 0 = offline, Serial only (T8 Integration I)
 
 // ---- Pins (ADC1 only for analog: GPIO32-39, because ADC2 stops working when WiFi is on) ----
@@ -23,6 +25,16 @@
 #define PIN_PUMP_RELAY  26
 #define PIN_SERVO       13
 #define RELAY_ACTIVE_LOW 1         // most blue relay modules switch ON when IN is LOW
+
+// ---- Feeder servo (SGD90-360 is very likely a continuous-rotation servo) ----
+// Bench check: press "Feed now". Keeps spinning then stops -> continuous (1). Twitches to an angle and back -> positional (0).
+#define FEEDER_CONTINUOUS 1
+// Continuous: pulse width that means "stop". If it creeps while idle, nudge between 1450..1550.
+#define SERVO_STOP_US   1500
+#define SERVO_SPIN_US   1300       // forward speed; further from STOP = faster. Use 1700 to reverse direction.
+// Feed Portion 1/2/3 (small/medium/large) -> spin time in ms (continuous) or sweep angle in degrees (positional).
+#define PORTION_SPIN_MS  { 300, 600, 900 }
+#define PORTION_DEG      { 45, 90, 135 }
 
 // ---- Voltage divider on 5V analog sensors: module out -> R_TOP -> pin -> R_BOTTOM -> GND ----
 #define R_TOP     10000.0f
@@ -37,6 +49,4 @@
 #define TURB_V_OFFSET 0.0f
 
 #define SAMPLES 20                 // analog samples per reading (median-ish average)
-#define COMMAND_POLL_MS   2000
-#define SETTINGS_POLL_MS  15000
 #define COMMAND_EXPIRE_MS (5UL * 60UL * 1000UL)

@@ -17,7 +17,7 @@ Status: **built 2026-11-24** (live tank scene, plain-language copy, sentence set
 | safe / too high / too low | **Good** ✓ / **Needs attention** + a one-line reason ("Water is too warm for the fish") |
 | Online / Offline | "AquaNode is connected" / "AquaNode hasn't reported in 3 min" |
 | Events: fed, feed_skipped, pump_on | "Fish were fed at 8:00 AM" · "Feeding skipped — water too cloudy" · "Water pump started" |
-| Settings: onMin / offMin, sweepDeg | "Run the pump for **15** minutes, then rest **45** minutes" · "Food portion: small / medium / large" |
+| Settings: onMin / offMin, portion | "Run the pump for **15** minutes, then rest **45** minutes" · "Food portion: small / medium / large" |
 | Safe Range min/max | "Keep acidity between **6.8** and **7.6**" (with a short "why" hint) |
 
 ## Animations (tied to real state)

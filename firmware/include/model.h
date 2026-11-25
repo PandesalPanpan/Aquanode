@@ -27,7 +27,7 @@ struct Settings {
   static const uint8_t MAX_FEEDS = 8;
   char feedTimes[MAX_FEEDS][6] = {"08:00", "18:00"};
   uint8_t feedCount = 2;
-  int sweepDeg = 90;
+  uint8_t portion = 2;              // Feed Portion: 1 small, 2 medium, 3 large (amounts in config.h)
   bool skipIfTurbid = true;
   Range ph{6.8f, 7.6f}, tempC{22.0f, 28.0f}, turbidityNTU{NAN, 50.0f};
 };

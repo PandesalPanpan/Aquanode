@@ -1,14 +1,20 @@
-// The ONLY file in the Dashboard that talks to the backend (see docs/adr/0001).
-// Swap this file's internals to move to MQTT; components only use these exports.
+// The Dashboard uses Firebase for sign-in, history, and messaging with the MQTT bridge.
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
-import { getDatabase, ref, onValue, query, orderByChild, limitToLast, push, set } from 'firebase/database';
+import { connectAuthEmulator, getAuth, signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
+import { connectDatabaseEmulator, getDatabase, ref, onValue, query, orderByChild, limitToLast, push, set } from 'firebase/database';
 import config from '../../firebase-config.json';
 import { DEVICE_ID } from './defaults.js';
 
-const app = initializeApp(config);
+const useEmulators = import.meta.env.DEV && import.meta.env.VITE_AQUANODE_EMULATORS === '1';
+const app = initializeApp(useEmulators
+  ? { ...config, projectId: 'demo-aquanode', databaseURL: 'https://demo-aquanode-default-rtdb.firebaseio.com' }
+  : config);
 const auth = getAuth(app);
 const db = getDatabase(app);
+if (useEmulators) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectDatabaseEmulator(db, '127.0.0.1', 9000);
+}
 const base = `aquanode/${DEVICE_ID}`;
 const r = (p) => ref(db, `${base}/${p}`);
 

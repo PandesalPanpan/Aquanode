@@ -4,7 +4,7 @@ export const DEVICE_ID = 'bench-01';
 export const DEFAULT_SETTINGS = {
   readingIntervalSec: 10,
   pump: { enabled: true, onMin: 15, offMin: 45 },
-  feed: { enabled: true, times: ['08:00', '18:00'], sweepDeg: 90, skipIfTurbid: true },
+  feed: { enabled: true, times: ['08:00', '18:00'], portion: 2, skipIfTurbid: true },
   safe: {
     ph: { min: 6.8, max: 7.6 },
     tempC: { min: 22, max: 28 },

@@ -210,7 +210,7 @@ export function History({ readings, safe, intervalSec = 10 }) {
 }
 
 // ---------- Settings, written as sentences ----------
-const PORTIONS = [{ label: 'Small', deg: 45 }, { label: 'Medium', deg: 90 }, { label: 'Large', deg: 135 }];
+const PORTIONS = [{ label: 'Small', value: 1 }, { label: 'Medium', value: 2 }, { label: 'Large', value: 3 }];
 
 function Num({ value, onChange, label, step = 'any', min, max, width = 3.5 }) {
   return (
@@ -237,7 +237,7 @@ export function SettingsSentences({ settings, toast }) {
     setDraft(null);
     toast('Changes saved. AquaNode picks them up within 15 seconds.');
   };
-  const portion = PORTIONS.reduce((a, p) => (Math.abs(p.deg - s.feed.sweepDeg) < Math.abs(a.deg - s.feed.sweepDeg) ? p : a));
+  const portion = PORTIONS.find((p) => p.value === s.feed.portion) ?? PORTIONS[1];
 
   return (
     <section className="panel settings">
@@ -274,7 +274,7 @@ export function SettingsSentences({ settings, toast }) {
           Give a{' '}
           <span className="segmented" role="radiogroup" aria-label="Food portion">
             {PORTIONS.map((p) => (
-              <button type="button" role="radio" aria-checked={portion.label === p.label} key={p.label} className={portion.label === p.label ? 'is-on' : ''} onClick={() => set('feed.sweepDeg', p.deg)}>{p.label}</button>
+              <button type="button" role="radio" aria-checked={portion.label === p.label} key={p.label} className={portion.label === p.label ? 'is-on' : ''} onClick={() => set('feed.portion', p.value)}>{p.label}</button>
             ))}
           </span>{' '}
           portion each time.

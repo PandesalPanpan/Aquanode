@@ -1,16 +1,11 @@
 // Smoke test: signs in as the TEAM user (like the Dashboard), checks live data, sends commands + a settings change,
 // and verifies the device (fake or real) handled them. Usage: set AQUANODE_TEAM_EMAIL / AQUANODE_TEAM_PASSWORD, then `node smoke-test.mjs`.
-import { readFileSync } from 'node:fs';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { getDatabase, ref, get, push, update, goOffline } from 'firebase/database';
+import { ref, get, push, update, goOffline } from 'firebase/database';
+import { openDatabase } from './firebase-client.mjs';
+import { BASE } from './mqtt-device.mjs';
 
-const config = JSON.parse(readFileSync(new URL('../web/firebase-config.json', import.meta.url)));
-const { DEVICE_ID } = await import('../web/src/data/defaults.js');
-const app = initializeApp(config);
-await signInWithEmailAndPassword(getAuth(app), process.env.AQUANODE_TEAM_EMAIL, process.env.AQUANODE_TEAM_PASSWORD);
-const db = getDatabase(app);
-const r = (p) => ref(db, `aquanode/${DEVICE_ID}/${p}`);
+const db = await openDatabase(process.env.AQUANODE_TEAM_EMAIL, process.env.AQUANODE_TEAM_PASSWORD);
+const r = (p) => ref(db, BASE + p);
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 let fails = 0;
 const check = (name, ok, detail = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${detail}`); if (!ok) fails++; };
