@@ -81,19 +81,19 @@ If short on time, W4 order is the priority order; Settings form and events log c
 
 Start with the [Thursday MQTT handoff](mqtt.md#thursday-handoff--november-26-2026) for the verified baseline and the board-only MQTT check.
 
-General rule: **one component at a time, test sketch first, then add to the main firmware.** Every row is a **Checkpoint** → clip + Recording Log line. Swap builder/filmer each Checkpoint.
+General rule: **upload the full firmware once, then wire one component at a time and test it from the [bench test console](#bench-test-console-no-wifi-needed)** (no re-upload unless `config.h` changes). T0–T8 work without internet; T9–T13 need the MQTT broker + bridge from [mqtt.md](mqtt.md). Every row is a **Checkpoint** → clip + Recording Log line. Swap builder/filmer each Checkpoint.
 
 | ID | Checkpoint | Test | Pass when |
 |---|---|---|---|
 | T0 | Inventory | Lay out every part, read model numbers, update `config.h` pin map | photo + table filled in |
-| T1 | Board alive | Blink LED + "hello" on Serial via `pio run -t upload` + monitor | LED blinks, Serial prints |
-| T2 | Temperature | DS18B20 + 4.7kΩ pull-up; hand-warm the probe, then cold water | °C rises/falls sensibly |
-| T3 | Turbidity | Clear water vs. water with a few drops of milk/soil | voltage clearly drops when cloudy |
-| T4 | pH | Tap water (~7), vinegar (~3), baking-soda water (~8–9) | readings move in the right direction |
-| T5 | Relay | Relay alone first (hear the click, LED toggles) | clicks on command |
-| T6 | Pump | Pump **submerged** in a container, via relay | water flows on/off |
-| T7 | Feeder | "Feed now" on external 5V; confirm servo type (continuous spins then stops → `FEEDER_CONTINUOUS 1`) | spins & stops cleanly, no creep, no ESP32 brownout/reset |
-| T8 | Integration I | All in one sketch; Serial prints a full Reading every 10 s; pump timer + feed schedule run (use short test intervals, e.g. 1 min) | runs 15 min without reset |
+| T1 | Board alive | Upload full firmware once: `pio run -e esp32dev -t upload`, then `pio device monitor` | banner + console help line print |
+| T2 | Temperature | DS18B20 module on **3.3V**, DAT → GPIO4; press EN to reboot; `read`; hand-warm probe, then cold water | `DS18B20 found: 1`; °C rises/falls sensibly |
+| T3 | Turbidity | Multimeter on module output first; then output → divider → GPIO35; `read` in clear vs. milky water | voltage clearly drops when cloudy |
+| T4 | pH | PO → divider → GPIO34; wait 1 min warm-up; `read` in tap water (~7), vinegar (~3), baking-soda water (~8–9); note the raw volts | readings move in the right direction |
+| T5 | Relay | Relay alone (no pump): `pump on` / `pump off` | clicks; if reversed set `RELAY_ACTIVE_LOW 0` and re-upload |
+| T6 | Pump | Pump **submerged first**, power-bank 5V via relay COM/NO, 1N4007 across pump; `pump on` / `pump off` | water flows on/off |
+| T7 | Feeder | Servo on power-bank 5V, signal → GPIO13, capacitor on the 5V rail; `feed 1`/`2`/`3`; tune with `stop <us>` | spins & stops cleanly, no creep, no ESP32 reset |
+| T8 | Integration I | Everything wired at once; Serial prints a full Reading every 10 s; pump timer + feed schedule run (use short test intervals, e.g. 1 min) | runs 15 min without reset |
 | T9 | Online | Wi-Fi + MQTT; Readings reach Firebase through the bridge | Dashboard shows real data |
 | T10 | Remote control | Dashboard: pump toggle + Feed now | physical action within ~3 s |
 | T11 | Settings sync | Change pump timing/feed time/Safe Range in Dashboard | ESP32 applies it (Serial confirms) |
