@@ -1,0 +1,4 @@
+{
+  "_note": "Public Web Push (VAPID) key from Firebase Console > Project settings > Cloud Messaging > Web Push certificates. Generated 2026-11-26. Public by design: safe to commit. Used by the Alert push notifications (stretch goal, not wired up yet).",
+  "vapidKey": "BLGIALXc9XisquadSeCx05fhugDYh1H7qmBJ_zx11UVFdAE4sTulwpR1Fv2qEhtVMCavV61XC4RyJ1TUuJptyTw"
+}
