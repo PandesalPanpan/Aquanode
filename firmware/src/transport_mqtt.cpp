@@ -1,5 +1,6 @@
 #include "transport.h"
 #include "config.h"
+#include "clock.h"
 
 #include <ArduinoJson.h>
 #include <Preferences.h>
@@ -196,7 +197,7 @@ void transportBegin(SettingsHandler onSettings, CommandHandler onCommand) {
 }
 
 bool transportReady() {
-  return connected && WiFi.status() == WL_CONNECTED && timeValid();
+  return connected && WiFi.status() == WL_CONNECTED && clockSynced();
 }
 
 static void applyMessage(const IncomingMessage& message) {
@@ -228,7 +229,7 @@ void transportLoop() {
     }
     return;
   }
-  if (!mqtt || !timeValid()) return;
+  if (!mqtt || !clockSynced()) return;   // never publish with a guessed clock
   static bool started;
   if (!started && (lastMqttStartTry == 0 || millis() - lastMqttStartTry >= 3000)) {
     lastMqttStartTry = millis();

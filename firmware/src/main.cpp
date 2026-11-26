@@ -7,6 +7,8 @@
 #include "actuators.h"
 #include "settings_store.h"
 #include "transport.h"
+#include "clock.h"
+#include <Preferences.h>
 
 static Settings S;
 static Status status;
@@ -30,6 +32,20 @@ static void feed(const String& reason) {
   status.lastFeedTs = nowMs();
   sendEvent("fed", reason);
   sendStatus(status);
+}
+
+// The last fed schedule slot is kept in flash, so a restart (or a clock restored a few minutes
+// behind) never feeds the same slot twice.
+static void loadFeedSlot() {
+  Preferences p; p.begin("aquanode", true);
+  p.getString("feedSlot", lastFeedSlot, sizeof lastFeedSlot);
+  p.end();
+}
+
+static void saveFeedSlot() {
+  Preferences p; p.begin("aquanode", false);
+  p.putString("feedSlot", lastFeedSlot);
+  p.end();
 }
 
 static void scheduledFeed(const char* slot) {
@@ -82,14 +98,23 @@ static void printReading(const Reading& r) {
 }
 
 static void consoleHelp() {
-  Serial.println("[console] commands: read | pump on | pump off | feed 1|2|3 | stop <us> (e.g. stop 1480) | help");
+  Serial.println("[console] commands: read | pump on | pump off | feed 1|2|3 | stop <us> (e.g. stop 1480)");
+  Serial.println("[console]           time | time YYYY-MM-DD HH:MM | cal turbidity (probe in CLEAR water) | cal reset | help");
 }
 
 static void handleConsole(String line) {
   line.trim();
   line.toLowerCase();
   if (!line.length()) return;
-  if (line == "read") { last = sensorsRead(); printReading(last); }
+  if (line == "help") consoleHelp();
+  else if (line == "time") clockPrint();
+  else if (line.startsWith("time ")) {
+    if (clockSetLocal(line.substring(5))) clockPrint();
+    else Serial.println("[console] use: time 2026-11-26 14:30 (local time, 24-hour)");
+  }
+  else if (line == "cal turbidity") sensorsCalibrateTurbidity();
+  else if (line == "cal reset") sensorsResetCalibration();
+  else if (line == "read") { last = sensorsRead(); printReading(last); }
   else if (line == "pump on") setPump(true, "console");
   else if (line == "pump off") setPump(false, "console");
   else if (line.startsWith("feed")) {
@@ -123,15 +148,20 @@ void setup() {
   delay(300);
   Serial.println("\n=== AquaNode " FW_VERSION " (" DEVICE_ID ") ===");
   settingsLoad(S);
+  clockBegin();
+  loadFeedSlot();
   sensorsBegin();
   actuatorsBegin();
   transportBegin(onSettings, onCommand);
-  phaseEndMs = millis();  // start pump cycle immediately
+  // Start in the OFF phase: a restart never switches the pump on by itself.
+  phaseEndMs = millis() + minutesToMs(S.pumpOffMin);
+  if (S.pumpEnabled) Serial.printf("[pump] starts OFF; timer turns it ON in %.1f min (or type 'pump on')\n", S.pumpOffMin);
   consoleHelp();
 }
 
 void loop() {
   transportLoop();
+  clockLoop();
   consoleLoop();
 
   // Readings
@@ -157,7 +187,8 @@ void loop() {
   if (!S.pumpEnabled) { if (status.pumpOn) setPump(false, "pump disabled"); }
   else if ((int32_t)(millis() - phaseEndMs) >= 0) setPump(!status.pumpOn, "timer");
 
-  // Feeding schedule (checked once a second; needs NTP time)
+  // Feeding schedule (checked once a second). Uses the local clock: internet time when online,
+  // otherwise the last good time keeps counting (see clock.cpp), so feeding also works offline.
   if (millis() - lastFeedCheckMs >= 1000 && S.feedEnabled && timeValid()) {
     lastFeedCheckMs = millis();
     struct tm t;
@@ -168,6 +199,7 @@ void loop() {
       for (uint8_t i = 0; i < S.feedCount; i++) {
         if (strcmp(S.feedTimes[i], hhmm) == 0 && strcmp(slot, lastFeedSlot) != 0) {
           strlcpy(lastFeedSlot, slot, sizeof lastFeedSlot);
+          saveFeedSlot();
           scheduledFeed(hhmm);
         }
       }

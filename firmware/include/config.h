@@ -3,7 +3,7 @@
 #include "secrets.h"
 
 #define DEVICE_ID   "bench-01"
-#define FW_VERSION  "0.2.0-mqtt"
+#define FW_VERSION  "0.3.0-mqtt"
 #define TZ_INFO "PHT-8"            // POSIX TZ string for UTC+8 (Philippines)
 
 #ifndef AQUANODE_DEMO_READINGS
@@ -18,13 +18,16 @@
 #define ENABLE_FEEDER     (!AQUANODE_DEMO_READINGS)
 #define ENABLE_CLOUD      1        // 0 = offline, Serial only (T8 Integration I)
 
-// ---- Pins (ADC1 only for analog: GPIO32-39, because ADC2 stops working when WiFi is on) ----
-#define PIN_PH          34
-#define PIN_TURBIDITY   35
-#define PIN_TEMP        4          // DS18B20 data, 4.7k pull-up to 3.3V
+// ---- Pins: follow AquaNode_Schematic_v1 (KiCad) except the relay, see below ----
+// Analog sensors stay on ADC1 (GPIO32-39), because ADC2 stops working when WiFi is on.
+#define PIN_PH          35         // schematic: U4 Po -> R3 10k / R2 20k -> IO35
+#define PIN_TURBIDITY   34         // schematic: U3 A  -> R4 10k / R5 20k -> IO34
+#define PIN_TEMP        25         // schematic: U2 DQ -> IO25, R1 4.7k pull-up to 3.3V
+#define PIN_SERVO       13         // schematic: M1 PWM -> IO13
+// Relay: the schematic drives an NPN from IO0, but IO0 is a boot pin (held LOW at reset = the board
+// boots into download mode instead of running). We use the relay MODULE on IO26 instead.
 #define PIN_PUMP_RELAY  26
-#define PIN_SERVO       13
-#define RELAY_ACTIVE_LOW 1         // most blue relay modules switch ON when IN is LOW
+#define RELAY_ACTIVE_LOW 1         // blue relay modules switch ON when IN is LOW. Bare NPN + relay (schematic K1/Q1): set 0
 
 // ---- Feeder servo (SGD90-360 is very likely a continuous-rotation servo) ----
 // Bench check: press "Feed now". Keeps spinning then stops -> continuous (1). Twitches to an angle and back -> positional (0).
@@ -46,7 +49,7 @@
 #define PH_SLOPE   -5.70f
 #define PH_OFFSET  21.34f
 // Turbidity: SEN0189 datasheet curve (valid ~2.5-4.2 V). TURB_V_OFFSET shifts so clear water reads ~0 NTU.
-#define TURB_V_OFFSET 0.0f
+#define TURB_V_OFFSET 0.0f        // default only: "cal turbidity" in the Serial Monitor measures and saves the real one
 
 #define SAMPLES 20                 // analog samples per reading (median-ish average)
 #define COMMAND_EXPIRE_MS (5UL * 60UL * 1000UL)
