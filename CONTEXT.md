@@ -18,11 +18,13 @@
 
 **Skip-Feed Rule** — If turbidity is outside its Safe Range at feeding time, the scheduled feeding is skipped (overfeeding clouds water). This is what makes AquaNode a *balancer*, not just a monitor.
 
-**Dashboard** — The responsive web app (works on phone and laptop) for viewing Readings/Alerts and changing Settings/sending Commands.
+**Dashboard** — The responsive web app (works on phone and laptop, and can be installed to a phone's Home Screen as an app; there is no separate App Store app) for viewing Readings/Alerts and changing Settings/sending Commands.
 
 **Final Assembly** — Moving the working Bench Prototype into the aquarium with grow trays, enclosure, and PCB. Comes after the Bench Prototype; out of scope for now.
 
 **Transport** — The single layer (one firmware module, one frontend module) that moves Readings, Settings, Commands, and Alerts between ESP32 and Dashboard. The Dashboard uses Firebase Realtime Database. The ESP32 uses MQTT, and the bridge relays messages between MQTT and Realtime Database.
+
+**Setup Mode** — The ESP32 opens its own Wi-Fi network (`AquaNode-Setup`) so a phone can choose which Wi-Fi it should join. It opens only on purpose: when no Wi-Fi is saved, or when BOOT is held at startup. Losing Wi-Fi never opens it, so the local schedule keeps running offline.
 
 **Checkpoint** — A moment in the plan where something works for the first time (marked 🎥). Each Checkpoint gets one short clip (what we test → wiring/code → result) and an entry in the Recording Log. Failures and fixes are recorded too.
 

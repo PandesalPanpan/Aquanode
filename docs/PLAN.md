@@ -87,35 +87,39 @@ General rule: **upload the full firmware once, then wire one component at a time
 |---|---|---|---|
 | T0 | Inventory | Lay out every part, read model numbers, update `config.h` pin map | photo + table filled in |
 | T1 | Board alive | Upload full firmware once: `pio run -e esp32dev -t upload`, then `pio device monitor` | banner + console help line print |
-| T2 | Temperature | DS18B20 module on **3.3V**, DAT → GPIO4; press EN to reboot; `read`; hand-warm probe, then cold water | `DS18B20 found: 1`; °C rises/falls sensibly |
-| T3 | Turbidity | Multimeter on module output first; then output → divider → GPIO35; `read` in clear vs. milky water | voltage clearly drops when cloudy |
-| T4 | pH | PO → divider → GPIO34; wait 1 min warm-up; `read` in tap water (~7), vinegar (~3), baking-soda water (~8–9); note the raw volts | readings move in the right direction |
+| T2 | Temperature | DS18B20 module on **3.3V**, DAT → GPIO25; press EN to reboot; `read`; hand-warm probe, then cold water | `DS18B20 found: 1`; °C rises/falls sensibly |
+| T3 | Turbidity | Multimeter on module output first; then output → divider → GPIO34; `read` in clear vs. milky water | voltage clearly drops when cloudy |
+| T4 | pH | PO → divider → GPIO35; wait 1 min warm-up; `read` in tap water (~7), vinegar (~3), baking-soda water (~8–9); note the raw volts | readings move in the right direction |
 | T5 | Relay | Relay alone (no pump): `pump on` / `pump off` | clicks; if reversed set `RELAY_ACTIVE_LOW 0` and re-upload |
 | T6 | Pump | Pump **submerged first**, power-bank 5V via relay COM/NO, 1N4007 across pump; `pump on` / `pump off` | water flows on/off |
 | T7 | Feeder | Servo on power-bank 5V, signal → GPIO13, capacitor on the 5V rail; `feed 1`/`2`/`3`; tune with `stop <us>` | spins & stops cleanly, no creep, no ESP32 reset |
-| T8 | Integration I | Everything wired at once; Serial prints a full Reading every 10 s; pump timer + feed schedule run (use short test intervals, e.g. 1 min) | runs 15 min without reset |
+| T8 | Integration I | Everything wired at once; Serial prints a full Reading every 10 s; offline feed test: `time <today> 07:59` → the 08:00 default feed runs a minute later | runs 15 min without reset; scheduled feed runs offline |
 | T9 | Online | Wi-Fi + MQTT; Readings reach Firebase through the bridge | Dashboard shows real data |
 | T10 | Remote control | Dashboard: pump toggle + Feed now | physical action within ~3 s |
 | T11 | Settings sync | Change pump timing/feed time/Safe Range in Dashboard | ESP32 applies it (Serial confirms) |
 | T12 | **Balancer demo** ⭐ | Make water cloudy right before a scheduled feed | feed skipped, `feed_skipped` event + turbidity Alert on Dashboard |
 | T13 | Resilience | Unplug router for 1 min | local schedule keeps running; data resumes after reconnect |
-| T14 | Stretch: calibration | Turbidity clear-water baseline, servo portion size (pH buffers skipped; pH stays uncalibrated) | values saved in `config.h` |
+| T15 | Wi-Fi Setup Mode (after T9) | No saved Wi-Fi, or hold BOOT 3 s after startup → ESP32 opens `AquaNode-Setup`; phone joins, picks the 2.4 GHz network, enters password | ESP32 joins the new Wi-Fi and keeps it after a reboot; a router outage (T13) never opens Setup Mode |
+| T16 | Stretch: Alert push | Dashboard installed on a phone (iPhone: iOS 16.4+, added to Home Screen); allow notifications; make water cloudy | phone shows the turbidity Alert with the app closed. Console prep done: FCM API (V1) enabled, Web Push key in `web/push-config.json`; still needs a service-account key for the bridge + the code |
+| T14 | Stretch: calibration | Turbidity clear-water baseline (`cal turbidity`, do it before T12), servo portion size (pH buffers skipped; pH stays uncalibrated) | values saved in `config.h` |
 
 T12 is the strongest tutorial moment, so film it carefully.
 
 ### Bench test console (no WiFi needed)
 Open the Serial Monitor (`pio device monitor`, 115200) and type:
-`read` (all sensors + raw pH/turbidity volts) · `pump on` / `pump off` · `feed 1|2|3` · `stop <us>` (try a servo stop pulse for 3 s; when it holds still, copy the value into `SERVO_STOP_US`) · `help`.
+`read` (all sensors + raw pH/turbidity volts) · `pump on` / `pump off` · `feed 1|2|3` · `stop <us>` (try a servo stop pulse for 3 s; when it holds still, copy the value into `SERVO_STOP_US`) · `time` / `time YYYY-MM-DD HH:MM` (show or set the clock offline) · `cal turbidity` (probe in clear water; saves the offset in flash) · `cal reset` · `help`.
+
+After a restart the pump starts **OFF** and the timer switches it on after the off-duration (default 45 min). The feeding schedule runs from the board's own clock: internet time when online, otherwise the last saved time (saved every 5 min) or a time set with `time`.
 Use the raw pH volts in buffer solutions for the T14 calibration.
 
-### Default wiring (adjust at T0)
+### Default wiring (follows `AquaNode_Schematic_v1`, except the relay)
 
 | Part | Power | Signal → ESP32 | Notes |
 |---|---|---|---|
-| pH module | 5V | analog out → **voltage divider** (10kΩ/20kΩ) → GPIO34 | ADC1 only (ADC2 dies with WiFi) |
-| Turbidity module | 5V | analog out → **voltage divider** → GPIO35 | ADC1 only |
-| DS18B20 module | **3.3V** (not 5V) | data → GPIO4 | module has the 4.7kΩ pull-up on board |
-| Relay module | 5V | IN → GPIO26 | check active-LOW vs HIGH |
+| pH module | 5V | analog out → **voltage divider** (10kΩ/20kΩ) → GPIO35 (R3/R2) | ADC1 only (ADC2 dies with WiFi) |
+| Turbidity module | 5V | analog out → **voltage divider** (10kΩ/20kΩ) → GPIO34 (R4/R5) | ADC1 only |
+| DS18B20 module | **3.3V** (not 5V) | data → GPIO25 | 4.7kΩ pull-up DQ→3.3V (R1); a module board already has it |
+| Relay module | 5V | IN → GPIO26 | check active-LOW vs HIGH. The schematic drives a bare relay via NPN from IO0: not used, IO0 is a boot pin |
 | Pump | own supply via relay COM/NO | — | never run dry |
 | Servo (SGD90-360, continuous) | **external 5V** | PWM → GPIO13 | not from ESP32 3.3V pin |
 | Power bank (via USB breakout) | 5V rail for pump, servo, relay, pH, turbidity | — | buck converter not used on the bench; GND common with ESP32 |

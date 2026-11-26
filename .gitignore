@@ -8,3 +8,7 @@ firmware/include/secrets.h
 *.mp4
 .playwright-mcp/
 tools/fake.log
+
+# Firebase Admin SDK service-account key (bridge push notifications). Never commit.
+tools/secrets/
+*-firebase-adminsdk-*.json
