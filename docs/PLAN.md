@@ -93,7 +93,8 @@ General rule: **upload the full firmware once, then wire one component at a time
 | T5 | Relay | Relay alone (no pump): `pump on` / `pump off` | clicks; if reversed set `RELAY_ACTIVE_LOW 0` and re-upload |
 | T6 | Pump | Pump **submerged first**, power-bank 5V via relay COM/NO, 1N4007 across pump; `pump on` / `pump off` | water flows on/off |
 | T7 | Feeder | Servo on power-bank 5V, signal → GPIO13, capacitor on the 5V rail; `feed 1`/`2`/`3`; tune with `stop <us>` | spins & stops cleanly, no creep, no ESP32 reset |
-| T8 | Integration I | Everything wired at once; Serial prints a full Reading every 10 s; offline feed test: `time <today> 07:59` → the 08:00 default feed runs a minute later | runs 15 min without reset; scheduled feed runs offline |
+| T8a | Integration I: sensors | pH, turbidity and temperature wired at once (no pump/servo); Serial prints a full Reading every 10 s | runs 15 min without reset, brownout or `nan` |
+| T8b | Integration I: actuators | Add relay + pump + servo to the T8a bench; offline feed test: `time <today> 07:59` → the 08:00 default feed runs a minute later | runs 15 min without reset; scheduled feed runs offline |
 | T9 | Online | Wi-Fi + MQTT; Readings reach Firebase through the bridge | Dashboard shows real data |
 | T10 | Remote control | Dashboard: pump toggle + Feed now | physical action within ~3 s |
 | T11 | Settings sync | Change pump timing/feed time/Safe Range in Dashboard | ESP32 applies it (Serial confirms) |
