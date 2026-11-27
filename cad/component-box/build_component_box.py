@@ -2,7 +2,7 @@
 glass wall with two glass clips (the same hook idea as the Feeder's main body).
 
 Run headless:  Y:\\Applications\\FreeCAD\\bin\\freecadcmd.exe cad\\component-box\\build_component_box.py
-Writes component_box.FCStd (assembled, hanging on a slice of glass) and, in print/, one STEP + STL
+Writes component_box.FCStd (assembled; the clips' slot is where the glass goes) and, in print/, one STEP + STL
 per part in the orientation to print it, plus parts.txt.
 
 Parts: the box (open top), a lift-off lid, and 2 identical clips bolted to the box's back with
@@ -44,9 +44,10 @@ PARAMS = {
     # Glass clips (same idea as the Feeder's hook; Feeder uses glass_gap 6.4 too)
     "glass_gap": 6.4,      # MEASURE: glass thickness + 0.4
     "clip_t": 4.5,         # clip plate thickness (Feeder: 4.5)
-    "clip_w": 30.0,        # clip width along the glass
-    "clip_plate_h": 45.0,  # plate bolted to the box's back
-    "hook_len": 35.0,      # how far the inner plate reaches down inside the tank
+    "clip_w": 24.0,        # clip width along the glass
+    "clip_plate_h": 40.0,  # plate bolted to the box's back
+    "hook_len": 40.0,      # inner plate inside the tank; same as the outer plate (two parallel plates)
+    "lead_in": 1.5,        # chamfer on the plates' bottom inner edges so the clip slides onto the glass
     "clip_inset": 28.0,    # clip centre from each end of the box
     "bolt_d": 3.4,         # M3 clearance
     "bolt_pitch": 22.0,    # two bolts per clip, one above the other
@@ -116,7 +117,15 @@ def make_clip(xc):
     bridge = Part.makeBox(clip_w, 2 * clip_t + glass_gap, clip_t, V(x0, -(2 * clip_t + glass_gap), top - clip_t))
     inner = Part.makeBox(clip_w, clip_t, hook_len + clip_t,
                          V(x0, -(2 * clip_t + glass_gap), top - clip_t - hook_len))
-    clip = plate.fuse([bridge, inner])
+    clip = plate.fuse([bridge, inner]).removeSplitter()
+    # Lead-in: chamfer the two bottom edges that face the glass slot.
+    y_slot = (-clip_t, -(clip_t + glass_gap))
+    bottom = [e for e in clip.Edges
+              if abs(e.Vertexes[0].Point.z - e.Vertexes[1].Point.z) < 1e-6
+              and abs(e.Vertexes[0].Point.y - e.Vertexes[1].Point.y) < 1e-6
+              and e.Vertexes[0].Point.z < top - clip_t - min(clip_plate_h, hook_len) + 1e-6
+              and any(abs(e.Vertexes[0].Point.y - y) < 1e-6 for y in y_slot)]
+    clip = clip.makeChamfer(lead_in, bottom)
     for z in bolt_zs:
         clip = clip.cut(ycyl(bolt_d, xc, z, -clip_t - 1, clip_t + 2))
         # Hex pocket on the glass side so the nut sits flush and can't scratch the glass.
@@ -128,12 +137,10 @@ def make_clip(xc):
 
 
 clips = [make_clip(x) for x in clip_xs]
-glass = Part.makeBox(box_w + 60, glass_gap - 0.4, 260, V(-30, -(clip_t + glass_gap - 0.2), box_h - 250))
 
-# --- Document (assembled, hanging on a slice of glass) ----------------------------------------
+# --- Document (assembled; the clips' slot shows where the glass goes) ---------------------------
 doc = App.newDocument("component_box")
-for name, sh in [("Box", box), ("Lid", lid), ("ClipLeft", clips[0]), ("ClipRight", clips[1]),
-                 ("Glass_for_reference_only", glass)]:
+for name, sh in [("Box", box), ("Lid", lid), ("ClipLeft", clips[0]), ("ClipRight", clips[1])]:
     o = doc.addObject("Part::Feature", name)
     o.Shape = sh
 doc.recompute()

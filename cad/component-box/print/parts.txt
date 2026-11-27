@@ -1,7 +1,7 @@
 PRINT (PLA or PETG, 3 walls, 20% infill, no supports)
   1 x box.stl  180 x 70 x 120 mm, 163.2 cm3, open side up
   1 x lid.stl  180 x 70 x 8 mm, 34.6 cm3, top face down, lip up
-  2 x glass_clip.stl  50 x 15 x 30 mm, 12.7 cm3, on its side, U shape flat on the bed
+  2 x glass_clip.stl  44 x 15 x 24 mm, 10.1 cm3, on its side, U shape flat on the bed
 
 HARDWARE
   4 x M3 x 10 mm bolt + 4 x M3 nut (bolt head inside the box, nut in the clip's hex pocket)
