@@ -23,6 +23,7 @@ Small parts (sections 2–4) are being bought by Carl.
 |---|---|---|---|
 | 🛒 | **Power bank**, 2 USB ports, **2A or more** per port; ideally has a low-current / "always on" mode | 1 | The 5V supply for the pump, servo, relay and the pH/turbidity modules. No cutting or soldering |
 | 🛒 | **USB-A male to screw-terminal / pin breakout** (or "USB to Dupont" 5V cable) | 1 | Plugs into the power bank and brings 5V + GND to the breadboard rails, with no cutting |
+| 🛒 | **DC barrel connector, FEMALE, with screw terminals** (sold as "DC power balun" for CCTV, 5.5 × 2.1 mm) | 2 | Carl's pick for the wall adapter's round plug. Plug the adapter in and screw two wires into + and −, with no soldering. Check with the multimeter that + really is positive before connecting. Replaces the USB breakout once a wall adapter is used, including on the bench |
 | 🛒 | Electrolytic capacitor **470–1000µF, 16V or more** | 1–2 | Across the 5V rail, so the servo/pump starting doesn't reset the ESP32 |
 | 🛒 | Diode **1N4007** (or 1N4001–1N5819) | 1 | Across the pump's terminals, stripe toward +, to absorb the motor's voltage spikes |
 | 🛒 | Data-capable micro-USB / USB-C cable (match your ESP32) | 1 | Some cables are charge-only and the board won't show up |
@@ -52,7 +53,7 @@ Divider wiring, one per sensor: **module out → 10kΩ → ESP32 pin → 20kΩ �
 
 | ✓ | Item | Why |
 |---|---|---|
-| 🛒 | 3D-printed feeder (hopper + rotating part on the servo horn) | Not needed for the T7 spin test; the servo can be tested bare |
+| 🛒 | 3D-printed feeder: files and print list in [`cad/feeder/`](../cad/feeder/README.md) (Aquassist design, Wemos box removed) | Not needed for the T7 spin test; the servo can be tested bare. Measure the glass and servo horn before printing |
 | 🛒 | Fish food (flakes or small pellets) | Testing the Feed Portion sizes |
 
 Note for whoever designs the print: the servo **spins continuously** and a portion is a spin **time**, so a rotating disc with a hole, a paddle wheel or an auger works. A flap that swings to an angle and back does not. Body is SG90 size (about 23 × 12.5 × 22 mm, mounting tabs 32 mm across); check the horn that comes with the servo before printing.
@@ -88,5 +89,10 @@ Power bank ──► USB breakout ──► 5V rail ──┬─► relay VCC �
 ALL GNDs joined: ESP32 GND ↔ breakout GND ↔ every module GND
 ```
 
+- **Final Assembly power (2026-11-27):** a **wall adapter with a round (barrel) plug** replaces the power bank, through the female DC connector above. On the PCB: barrel jack → buck converter → 5V/GND (Carl's plan). Unlike a power bank, it doesn't run flat or switch itself off. **Still open: adapter voltage.**
+  - **12 V (2 A):** the buck must be set to **5.0 V with the multimeter before anything is connected**. 12 V must never reach the 5V rail directly.
+  - **5 V 3 A:** the buck can't be used, because it needs about 7 V or more in. The adapter goes straight to the 5V rail.
+
+  Once the laptop is unplugged, the ESP32 also runs from this 5V.
 - Never connect the power bank's 5V to the ESP32's 5V/VIN pin while the laptop USB is also plugged in.
 - **Power bank auto-off:** many banks switch off when the load is tiny (pump off, servo idle). Check: leave it idle 2 minutes; if the relay board's LED goes dark, turn on the bank's low-current mode (often a double-press or long-press of its button), or use a bank that has one.

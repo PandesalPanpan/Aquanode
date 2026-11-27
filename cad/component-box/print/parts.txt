@@ -1,0 +1,10 @@
+PRINT (PLA or PETG, 3 walls, 20% infill, no supports)
+  1 x box.stl  180 x 70 x 120 mm, 163.2 cm3, open side up
+  1 x lid.stl  180 x 70 x 8 mm, 34.6 cm3, top face down, lip up
+  2 x glass_clip.stl  50 x 15 x 30 mm, 12.7 cm3, on its side, U shape flat on the bed
+
+HARDWARE
+  4 x M3 x 10 mm bolt + 4 x M3 nut (bolt head inside the box, nut in the clip's hex pocket)
+  6 x 16 mm rubber grommet (optional) for the floor holes: pH, turbidity, temperature, pump, servo, USB / power
+
+Inside: 175.2 x 65.2 x 117.6 mm. Glass gap 6.4 mm (fits glass up to 6 mm; foam tape if thinner).

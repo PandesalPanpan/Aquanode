@@ -12,3 +12,7 @@ tools/fake.log
 # Firebase Admin SDK service-account key (bridge push notifications). Never commit.
 tools/secrets/
 *-firebase-adminsdk-*.json
+
+# Python bytecode (FreeCAD build script)
+__pycache__/
+*.FCBak

@@ -14,6 +14,12 @@
 
 **Feed Portion** — How much food one feeding drops: small, medium, or large. The ESP32 turns the size into a servo spin time (continuous-rotation servo) or sweep angle (standard servo); the exact amounts are tuned on the bench.
 
+**Feeder** — The 3D-printed part that drops food: a food box (hopper) over an Archimedes screw turned by the continuous servo. Adapted from the Aquassist design, minus its Wemos D1 mini box. It holds only the servo; a cable runs to the ESP32, which lives elsewhere.
+
+**Tank** — The aquarium: about 400 × 200 mm, 350–400 mm tall. The Feeder and the Component Box both hang on its glass.
+
+**Component Box** — The small 3D-printed box that holds the electronics. It hangs on the Tank's long glass wall with glass clips (like the Feeder's hook), and its lid lifts off. "Enclosure" in Final Assembly means this box.
+
 **Command** — A one-off manual action sent from the app: pump on/off, feed now.
 
 **Skip-Feed Rule** — If turbidity is outside its Safe Range at feeding time, the scheduled feeding is skipped (overfeeding clouds water). This is what makes AquaNode a *balancer*, not just a monitor.
