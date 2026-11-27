@@ -6,7 +6,8 @@
     "fake": "node fake-device.mjs",
     "bridge": "node mqtt-bridge.mjs",
     "smoke": "node smoke-test.mjs",
-    "smoke:mqtt": "node mqtt-smoke.mjs"
+    "smoke:mqtt": "node mqtt-smoke.mjs",
+    "test:interval": "node interval-test.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

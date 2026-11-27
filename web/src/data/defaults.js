@@ -12,6 +12,16 @@ export const DEFAULT_SETTINGS = {
   },
 };
 
+// How often the device takes a Reading. The firmware applies the same limits (settings_store.cpp).
+export const READING_INTERVAL = { min: 2, max: 3600, fallback: 10 };
+
+// Whole seconds within READING_INTERVAL; anything unusable (blank, text, NaN) falls back to 10.
+export function cleanIntervalSec(value) {
+  const n = Math.round(Number(value));
+  if (value == null || value === '' || !Number.isFinite(n)) return READING_INTERVAL.fallback;
+  return Math.min(READING_INTERVAL.max, Math.max(READING_INTERVAL.min, n));
+}
+
 export const METRICS = [
   { key: 'ph', label: 'pH', unit: '', digits: 2 },
   { key: 'tempC', label: 'Temperature', unit: '°C', digits: 1 },

@@ -61,7 +61,7 @@ export default function TankScene({ pumpOn, feedPulse, murk, offline }) {
       <picture>
         <source type="image/avif" srcSet="/bg/hero-1080.avif 1080w, /bg/hero-1920.avif 1920w" sizes="100vw" />
         <source type="image/webp" srcSet="/bg/hero-1080.webp 1080w, /bg/hero-1920.webp 1920w" sizes="100vw" />
-        <img src="/bg/hero-1920.webp" alt="The aquaponics tank: plants growing above the water, fish swimming below" fetchpriority="high" />
+        <img src="/bg/hero-1920.webp" alt="The aquaponics tank: plants growing above the water, fish swimming below" fetchPriority="high" />
       </picture>
       <div className="murk" style={{ '--murk': murk }} aria-hidden="true" />
       <Bubbles active={pumpOn} />

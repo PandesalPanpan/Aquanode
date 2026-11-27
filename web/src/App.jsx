@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import * as T from './data/transport.js';
-import { mergeSettings } from './data/defaults.js';
+import { mergeSettings, cleanIntervalSec } from './data/defaults.js';
 import { useSub, useNow, useNewEvents } from './ui/hooks.js';
 import { headline, issuesOf, since, authError } from './ui/words.js';
 import TankScene from './ui/TankScene.jsx';
@@ -13,10 +13,21 @@ export default function App() {
   return user ? <Dashboard user={user} /> : <Login />;
 }
 
+// Same drawing as assets/logo/aquanode-mark.svg (drop = tank, fish inside, sprout = plants).
 function Logo() {
+  const fish = 'logo-fish-' + useId().replace(/[^\w-]/g, ''); // useId has characters url(#…) can't take
   return (
     <span className="logo">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3c5 6 9 11 9 16a9 9 0 0 1-18 0c0-5 4-10 9-16z" /><path className="leaf" d="M16 21c0-5 3-8 8-9-1 5-4 8-8 9z" /></svg>
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <mask id={fish} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+          <rect width="64" height="64" fill="#fff" />
+          <path fill="#000" d="M20.5 44.4c3.6-6 12.4-6.6 17-1.4l5.5-4.1v11l-5.5-4.1c-4.6 5.2-13.4 4.6-17-1.4z" />
+          <circle fill="#fff" cx="25.6" cy="43.3" r="1.5" />
+        </mask>
+        <path fill="#7fb069" d="M31 19.4c-8.4-.3-14.2-6.1-14.6-15.2C25.2 5 30.6 10.4 31 19.4z" />
+        <path fill="#9ccc7f" d="M33 19.4c.4-9.6 6.3-15.8 15.6-16.4C48 12.4 41.8 18.8 33 19.4z" />
+        <path fill="#6fc3c9" mask={`url(#${fish})`} d="M32 16.4c6.4 8 18 17 18 27.2a18 18 0 0 1-36 0C14 33.4 25.6 24.4 32 16.4z" />
+      </svg>
       AquaNode
     </span>
   );
@@ -63,7 +74,8 @@ function Dashboard({ user }) {
   useEffect(() => { if (!toastMsg) return; const t = setTimeout(() => setToastMsg(null), 5000); return () => clearTimeout(t); }, [toastMsg]);
   useEffect(() => { if (feedPulse?.type === 'feed_skipped') toast('Feeding skipped: the water is too cloudy right now.'); }, [feedPulse, toast]);
 
-  const staleAfter = (settings.readingIntervalSec * 3 + 10) * 1000;
+  const intervalSec = cleanIntervalSec(settings.readingIntervalSec);
+  const staleAfter = (intervalSec * 3 + 10) * 1000;
   const loading = status === null && latest === null;
   const online = !!status?.online && now - (status?.lastSeen || 0) < staleAfter;
   const issues = issuesOf(latest, settings.safe);
@@ -94,7 +106,7 @@ function Dashboard({ user }) {
         <Readings latest={latest} safe={settings.safe} />
         <Actions status={status} online={online} feedPulse={feedPulse} toast={toast} />
         <div className="columns">
-          <History readings={readings} safe={settings.safe} intervalSec={settings.readingIntervalSec} />
+          <History readings={readings} safe={settings.safe} intervalSec={intervalSec} />
           <Timeline events={events ?? []} now={now} />
         </div>
         <SettingsSentences settings={settings} toast={toast} />

@@ -11,7 +11,8 @@ static void readRange(JsonVariantConst v, Range& r) {
 bool settingsFromJson(const String& json, Settings& s) {
   JsonDocument doc;
   if (deserializeJson(doc, json) || !doc.is<JsonObject>()) return false;
-  s.readingIntervalSec = max(2, doc["readingIntervalSec"] | (int)s.readingIntervalSec);
+  // Same limits as the Dashboard (READING_INTERVAL in web/src/data/defaults.js); also keeps it inside uint16_t.
+  s.readingIntervalSec = constrain(doc["readingIntervalSec"] | (int)s.readingIntervalSec, 2, 3600);
   JsonVariantConst p = doc["pump"];
   s.pumpEnabled = p["enabled"] | s.pumpEnabled;
   s.pumpOnMin = p["onMin"] | s.pumpOnMin;

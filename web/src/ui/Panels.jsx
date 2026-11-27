@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, ReferenceArea, ResponsiveContainer, Tooltip } from 'recharts';
 import * as T from '../data/transport.js';
-import { outOfRange } from '../data/defaults.js';
+import { outOfRange, cleanIntervalSec, READING_INTERVAL } from '../data/defaults.js';
 import { READINGS, clarityWord, describeEvent, dayLabel, timeOfDay, since } from './words.js';
 import { useTween } from './hooks.js';
 
@@ -232,7 +232,11 @@ export function SettingsSentences({ settings, toast }) {
   };
   const times = Array.isArray(s.feed.times) ? s.feed.times : [];
   const save = async () => {
-    const clean = { ...s, feed: { ...s.feed, times: [...new Set(times.filter(Boolean))].sort() } };
+    const clean = {
+      ...s,
+      readingIntervalSec: cleanIntervalSec(s.readingIntervalSec),
+      feed: { ...s.feed, times: [...new Set(times.filter(Boolean))].sort() },
+    };
     await T.saveSettings(clean);
     setDraft(null);
     toast('Changes saved. AquaNode picks them up within 15 seconds.');
@@ -294,7 +298,10 @@ export function SettingsSentences({ settings, toast }) {
 
       <div className="rule">
         <h3>Checking the water</h3>
-        <p>Check the water every <Num value={s.readingIntervalSec} onChange={(v) => set('readingIntervalSec', v)} label="Seconds between readings" min={2} /> seconds.</p>
+        <p>
+          Check the water every <Num value={s.readingIntervalSec} onChange={(v) => set('readingIntervalSec', v)} label="Seconds between readings" step={1} min={READING_INTERVAL.min} max={READING_INTERVAL.max} width={4.5} /> seconds{' '}
+          <span className="fine">({READING_INTERVAL.min} seconds to 1 hour; shorter means a livelier chart, longer means less data)</span>.
+        </p>
       </div>
 
       <div className={`savebar ${draft ? 'is-dirty' : ''}`} aria-hidden={!draft}>

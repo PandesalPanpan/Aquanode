@@ -32,10 +32,18 @@ Commands are sent without retention. The bridge retries pending Commands and exp
 
 ## Local verification
 
-Install the tooling dependencies using `npm --prefix tools ci`. With Firebase CLI and Java 21 available, run this from the project root.
+Install the tooling dependencies using `npm --prefix tools ci`. With Firebase CLI and Java 21 available, run this from the project root. On this PC, the `java` on PATH is Java 8, so first run `$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"` (`JAVA_HOME` is `Y:\Android\jdk-21`).
 
 ```powershell
 firebase emulators:exec --project demo-aquanode --only auth,database "node tools/mqtt-smoke.mjs"
 ```
 
-The test starts a loopback MQTT broker and uses the Auth and Realtime Database emulators. It checks live Readings, history, Settings, pump and feeder Commands, duplicate delivery, and expiry. To open the Dashboard against running emulators on the same computer, set `$env:VITE_AQUANODE_EMULATORS = '1'` and run `npm --prefix web run dev`. The local test creates the temporary sign-in `team@example.test` with password `emu-team-password`.
+The test starts a loopback MQTT broker and uses the Auth and Realtime Database emulators. It checks live Readings, history, Settings (including that readings actually arrive every 2 s and then every 6 s after the reading interval changes), pump and feeder Commands, duplicate delivery, and expiry. `npm --prefix tools run test:interval` checks the reading-interval limits on their own, without emulators.
+
+To try the Dashboard with no ESP32, run the whole system locally and leave it running:
+
+```powershell
+firebase emulators:exec --project demo-aquanode --only auth,database "node tools/local-sim.mjs"
+```
+
+Then, in a second terminal, set `$env:VITE_AQUANODE_EMULATORS = '1'` and run `npm --prefix web run dev`. Sign in as `team@example.test` with password `emu-team-password`. The reading interval (Settings → "Checking the water") accepts whole seconds from 2 to 3600. The Dashboard, simulator and firmware all apply the same limits.

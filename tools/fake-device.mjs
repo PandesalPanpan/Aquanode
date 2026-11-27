@@ -4,7 +4,7 @@
 // Keys while running:  c = toggle cloudy water (to demo the Skip-Feed Rule)   f = force a scheduled feed now   q = quit
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
-import { DEVICE_ID, DEFAULT_SETTINGS, METRICS, outOfRange, mergeSettings } from '../web/src/data/defaults.js';
+import { DEVICE_ID, DEFAULT_SETTINGS, METRICS, outOfRange, mergeSettings, cleanIntervalSec } from '../web/src/data/defaults.js';
 import { BASE, COMMAND_TYPES, connectMqtt, expired, subscribe, validId } from './mqtt-device.mjs';
 
 const FAST = process.env.SIM_FAST === '1';
@@ -58,9 +58,16 @@ async function takeReading() {
     alerted[key] = !!out;
   }
 }
+// Same limits as the firmware: whole seconds, 2..3600. Only restarts the timer when the interval changes,
+// so saving other Settings doesn't push the next Reading back.
+let intervalSec = 0;
 function scheduleReadings() {
+  const next = cleanIntervalSec(settings.readingIntervalSec);
+  if (next === intervalSec) return;
+  intervalSec = next;
   clearInterval(readingTimer);
-  readingTimer = setInterval(() => takeReading().catch((e) => log('reading failed', e.message)), (settings.readingIntervalSec || 10) * 1000);
+  readingTimer = setInterval(() => takeReading().catch((e) => log('reading failed', e.message)), intervalSec * 1000);
+  log(`reading every ${intervalSec}s`);
 }
 
 // ---- Pump (timer cycle + manual override) ----

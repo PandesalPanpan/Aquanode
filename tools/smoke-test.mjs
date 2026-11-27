@@ -25,12 +25,26 @@ for (const type of ['feed_now', 'pump_on', 'pump_off']) {
 }
 check('pump state follows command', (await get(r('status/pumpOn'))).val() === false);
 
+// Reading interval: change it like the Dashboard does, then measure the gaps between the Readings that follow.
+// Checks both directions (faster and slower) so a device that ignores the setting can't pass by luck.
+async function readingGapsAfter(sec) {
+  const changedAt = Date.now();
+  await update(r('settings'), { readingIntervalSec: sec });
+  const deadline = changedAt + sec * 4000 + 8000;
+  let ts = [];
+  while (Date.now() < deadline) {
+    await sleep(500);
+    ts = Object.values((await get(r('readings'))).val() || {}).map((x) => x.ts).filter((t) => t > changedAt).sort((a, b) => a - b);
+    if (ts.length >= 4) break;
+  }
+  return ts.slice(1).map((t, i) => (t - ts[i]) / 1000); // only Readings taken after the change
+}
 const before = (await get(r('settings/readingIntervalSec'))).val();
-await update(r('settings'), { readingIntervalSec: 5 });
-await sleep(12_000);
-const recent = Object.values((await get(r('readings'))).val() || {}).map((x) => x.ts).sort().slice(-3);
-const gap = (recent[2] - recent[1]) / 1000;
-check('settings change applied', gap < 7, `reading gap ${gap.toFixed(1)}s after setting 5s`);
+for (const sec of [2, 6]) {
+  const gaps = (await readingGapsAfter(sec)).slice(-2);
+  const ok = gaps.length === 2 && gaps.every((g) => Math.abs(g - sec) < 1);
+  check(`reading interval ${sec}s applied`, ok, `gaps ${gaps.map((g) => g.toFixed(1) + 's').join(', ') || 'none'}`);
+}
 await update(r('settings'), { readingIntervalSec: before ?? 10 });
 
 const events = Object.values((await get(r('events'))).val() || {}).map((e) => e.type);
