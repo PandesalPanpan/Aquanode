@@ -28,20 +28,41 @@ void feederHoldStop(uint32_t ms) {
 
 void actuatorsBegin() {
 #if ENABLE_PUMP
+  // Set the Stop level (HIGH) before making the pin an output: a pin that becomes an output
+  // while LOW would start the pump for a moment at every boot.
+  digitalWrite(PIN_PUMP_RELAY, PUMP_OFF_LEVEL);
+#if PUMP_OPEN_DRAIN
+  pinMode(PIN_PUMP_RELAY, OUTPUT_OPEN_DRAIN);   // HIGH = released (floats up to the module's VCC)
+#else
   pinMode(PIN_PUMP_RELAY, OUTPUT);
+#endif
 #endif
   pumpSet(false);
 }
 
+// Start pump -> pin LOW. Stop pump -> pin HIGH.
 void pumpSet(bool on) {
   pumpOn = on;
+  const uint8_t level = on ? PUMP_ON_LEVEL : PUMP_OFF_LEVEL;
 #if ENABLE_PUMP
-  digitalWrite(PIN_PUMP_RELAY, (on ^ RELAY_ACTIVE_LOW) ? HIGH : LOW);
+  digitalWrite(PIN_PUMP_RELAY, level);
 #endif
-  Serial.printf("[pump] %s\n", on ? "ON" : "OFF");
+  Serial.printf("[pump] %s (GPIO %d = %s)\n", on ? "ON" : "OFF", PIN_PUMP_RELAY,
+                level == LOW ? "LOW" : (PUMP_OPEN_DRAIN ? "HIGH, released" : "HIGH"));
 }
 
 bool pumpIsOn() { return pumpOn; }
+
+#if FEEDER_CONTINUOUS && ENABLE_FEEDER
+// Steps the pulse 5 us every 20 ms (about 0.8 s from stop to full speed) to keep the start-up current low.
+static void rampServo(int fromUs, int toUs) {
+  for (int us = fromUs; us != toUs;) {
+    us += (toUs > us) ? min(5, toUs - us) : -min(5, us - toUs);
+    servo.writeMicroseconds(us);
+    delay(20);
+  }
+}
+#endif
 
 // One feeding. Servo is detached afterwards to stop jitter/creep and save power.
 void feederRun(uint8_t portion) {
@@ -53,8 +74,10 @@ void feederRun(uint8_t portion) {
 #if ENABLE_FEEDER
   servo.attach(PIN_SERVO, 500, 2400);
   servo.writeMicroseconds(stopUs); delay(100);
-  servo.writeMicroseconds(SERVO_SPIN_US); delay(spinMs[i]);
-  servo.writeMicroseconds(stopUs); delay(200);
+  rampServo(stopUs, SERVO_SPIN_US);   // gradual start: a sudden one browns out the ESP32 on USB power
+  delay(spinMs[i]);
+  rampServo(SERVO_SPIN_US, stopUs);
+  delay(200);
   servo.detach();
 #endif
 #else

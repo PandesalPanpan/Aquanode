@@ -27,7 +27,14 @@
 // Relay: the schematic drives an NPN from IO0, but IO0 is a boot pin (held LOW at reset = the board
 // boots into download mode instead of running). We use the relay MODULE on IO26 instead.
 #define PIN_PUMP_RELAY  26
-#define RELAY_ACTIVE_LOW 1         // blue relay modules switch ON when IN is LOW. Bare NPN + relay (schematic K1/Q1): set 0
+// Pump relay levels on PIN_PUMP_RELAY: Start pump = LOW, Stop pump = HIGH (active-LOW relay module).
+// Bare NPN + relay (schematic K1/Q1) needs the opposite: swap the two values.
+#define PUMP_ON_LEVEL   LOW
+#define PUMP_OFF_LEVEL  HIGH
+// 1 = open-drain: Start pulls GPIO 26 to GND, Stop releases it (the relay module pulls IN up to its own
+// VCC). Stops the module's 5 V from back-feeding into the 3.3 V pin, which can leave the relay half on.
+// Set 0 for a bare NPN driver (needs a real HIGH to switch on).
+#define PUMP_OPEN_DRAIN 1
 
 // ---- Feeder servo (SGD90-360 is very likely a continuous-rotation servo) ----
 // Bench check: press "Feed now". Keeps spinning then stops -> continuous (1). Twitches to an angle and back -> positional (0).
@@ -36,7 +43,7 @@
 #define SERVO_STOP_US   1500
 #define SERVO_SPIN_US   1300       // forward speed; further from STOP = faster. Use 1700 to reverse direction.
 // Feed Portion 1/2/3 (small/medium/large) -> spin time in ms (continuous) or sweep angle in degrees (positional).
-#define PORTION_SPIN_MS  { 300, 600, 900 }
+#define PORTION_SPIN_MS  { 3000, 3000, 3000 }   // bench test: every portion spins 3 s; tune per portion on the tank
 #define PORTION_DEG      { 45, 90, 135 }
 
 // ---- Voltage divider on 5V analog sensors: module out -> R_TOP -> pin -> R_BOTTOM -> GND ----

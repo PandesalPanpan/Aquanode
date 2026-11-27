@@ -90,7 +90,7 @@ General rule: **upload the full firmware once, then wire one component at a time
 | T2 | Temperature | DS18B20 module on **3.3V**, DAT → GPIO25; press EN to reboot; `read`; hand-warm probe, then cold water | `DS18B20 found: 1`; °C rises/falls sensibly |
 | T3 | Turbidity | Multimeter on module output first; then output → divider → GPIO34; `read` in clear vs. milky water | voltage clearly drops when cloudy |
 | T4 | pH | PO → divider → GPIO35; wait 1 min warm-up; `read` in tap water (~7), vinegar (~3), baking-soda water (~8–9); note the raw volts | readings move in the right direction |
-| T5 | Relay | Relay alone (no pump): `pump on` / `pump off` | clicks; if reversed set `RELAY_ACTIVE_LOW 0` and re-upload |
+| T5 | Relay | Relay alone (no pump): `pump on` / `pump off` | clicks; if reversed swap `PUMP_ON_LEVEL` / `PUMP_OFF_LEVEL` in config.h and re-upload |
 | T6 | Pump | Pump **submerged first**, power-bank 5V via relay COM/NO, 1N4007 across pump; `pump on` / `pump off` | water flows on/off |
 | T7 | Feeder | Servo on power-bank 5V, signal → GPIO13, capacitor on the 5V rail; `feed 1`/`2`/`3`; tune with `stop <us>` | spins & stops cleanly, no creep, no ESP32 reset |
 | T8a | Integration I: sensors | pH, turbidity and temperature wired at once (no pump/servo); Serial prints a full Reading every 10 s | runs 15 min without reset, brownout or `nan` |
