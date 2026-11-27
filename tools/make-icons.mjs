@@ -1,31 +1,37 @@
-// Render the AquaNode app icons (drop + leaf, same as the favicon) for the installable Dashboard.
-// Usage: node make-icons.mjs   -> web/public/icons/*.png
+// Render the AquaNode app icons from the logo mark (assets/logo/aquanode-mark.svg) for the installable Dashboard.
+// Usage: node make-icons.mjs   -> web/public/icons/*.png and web/public/favicon.svg
 import sharp from 'sharp';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const out = new URL('../web/public/icons/', import.meta.url);
+const path = (rel) => fileURLToPath(new URL(rel, import.meta.url));
+const out = path('../web/public/icons/');
 mkdirSync(out, { recursive: true });
 
-// The glyph lives in a 32x32 box. `scale` is how much of the square it fills:
-// maskable icons need it inside the central 80% safe zone, so they get a smaller glyph.
+const mark = readFileSync(path('../assets/logo/aquanode-mark.svg'), 'utf8');
+const inner = mark.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+
+// `scale` is how much of the square the mark fills: maskable icons need it inside the
+// central 80% safe zone, so they get a smaller mark.
 const svg = (scale) => {
-  const s = (512 * scale) / 32, off = (512 - 32 * s) / 2;
+  const size = 512 * scale, off = (512 - size) / 2;
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#18211f"/>
-  <g transform="translate(${off} ${off}) scale(${s})">
-    <path fill="#6fc3c9" d="M16 3c5 6 9 11 9 16a9 9 0 0 1-18 0c0-5 4-10 9-16z"/>
-    <path fill="#7fb069" d="M16 21c0-5 3-8 8-9-1 5-4 8-8 9z"/>
-  </g>
+  <svg x="${off}" y="${off}" width="${size}" height="${size}" viewBox="0 0 64 64">${inner}</svg>
 </svg>`);
 };
 
 const icons = [
-  ['icon-192.png', 192, 0.7],
-  ['icon-512.png', 512, 0.7],
-  ['maskable-512.png', 512, 0.55],
-  ['apple-touch-icon.png', 180, 0.62], // iPhone home screen; iOS rounds the corners itself
+  ['icon-192.png', 192, 0.72],
+  ['icon-512.png', 512, 0.72],
+  ['maskable-512.png', 512, 0.56],
+  ['apple-touch-icon.png', 180, 0.64], // iPhone home screen; iOS rounds the corners itself
 ];
 for (const [name, size, scale] of icons) {
-  await sharp(svg(scale)).resize(size, size).png().toFile(new URL(name, out).pathname.replace(/^\/([A-Z]:)/, '$1'));
+  await sharp(svg(scale), { density: 300 }).resize(size, size).png().toFile(out + name);
   console.log('wrote', name);
 }
+
+// Browser-tab icon: the bare mark on a transparent background.
+writeFileSync(path('../web/public/favicon.svg'), mark);
+console.log('wrote favicon.svg');

@@ -75,8 +75,6 @@ button:disabled { cursor: default; }
 }
 .logo { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); display: inline-flex; align-items: center; gap: 0.5rem; font: 700 1.25rem var(--display); letter-spacing: -0.02em; }
 .logo svg { width: 28px; height: 28px; }
-.logo svg path { fill: var(--water); }
-.logo svg path.leaf { fill: var(--moss); }
 .conn {
   margin-left: auto; display: inline-flex; align-items: center; gap: 0.5rem;
   font-size: 0.9rem; padding: 0.35rem 0.85rem; border-radius: 999px;

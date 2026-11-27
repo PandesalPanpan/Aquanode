@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- AquaNode mark: a water drop (the tank) with a fish inside and a sprout (the plants) growing from its tip. -->
+  <defs>
+    <mask id="aquanode-fish" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <path fill="#000" d="M20.5 44.4c3.6-6 12.4-6.6 17-1.4l5.5-4.1v11l-5.5-4.1c-4.6 5.2-13.4 4.6-17-1.4z"/>
+      <circle fill="#fff" cx="25.6" cy="43.3" r="1.5"/>
+    </mask>
+  </defs>
+  <path fill="#7fb069" d="M31 19.4c-8.4-.3-14.2-6.1-14.6-15.2C25.2 5 30.6 10.4 31 19.4z"/>
+  <path fill="#9ccc7f" d="M33 19.4c.4-9.6 6.3-15.8 15.6-16.4C48 12.4 41.8 18.8 33 19.4z"/>
+  <path fill="#6fc3c9" mask="url(#aquanode-fish)" d="M32 16.4c6.4 8 18 17 18 27.2a18 18 0 0 1-36 0C14 33.4 25.6 24.4 32 16.4z"/>
+</svg>
